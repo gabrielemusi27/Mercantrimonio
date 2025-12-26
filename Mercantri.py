@@ -1,6 +1,6 @@
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
-import pandas as pd
+#import pandas as pd
 
 # 1. Configurazione Pagina
 st.set_page_config(page_title="Asta Matrimonio", icon="🏆", layout="wide")
