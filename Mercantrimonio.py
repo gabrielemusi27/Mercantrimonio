@@ -7,7 +7,7 @@ st.set_page_config(page_title="Asta Matrimonio", icon="🏆")
 
 st.title("🎁 Verifica Database")
 
-URL_Carte = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT9UKZy-oAPm9p-feY3PYyFvLYoxxMgnmuc9Pmz0T0JtZr4f69dNoMPtCVA95XzNL-FyODTLLIvnUFR/pubhtml"
+URL_Carte = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT9UKZy-oAPm9p-feY3PYyFvLYoxxMgnmuc9Pmz0T0JtZr4f69dNoMPtCVA95XzNL-FyODTLLIvnUFR/pub?output=csv"
 
 try:
     # Leggiamo i dati direttamente via URL
