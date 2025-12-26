@@ -1,4 +1,124 @@
 import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+
+# 1. Configurazione Pagina
+st.set_page_config(page_title="Asta Matrimonio", icon="🏆", layout="wide")
+
+# 2. Connessione al Database
+conn = st.connection("gsheets", type=GSheetsConnection)
+
+# Funzione per caricare i dati (senza cache per avere i prezzi sempre aggiornati)
+def load_data():
+    tavoli = conn.read(worksheet="Tavoli")
+    carte = conn.read(worksheet="Carte")
+    offerte = conn.read(worksheet="Offerte")
+    return tavoli, carte, offerte
+
+df_tavoli, df_carte, df_offerte = load_data()
+
+# --- GESTIONE LOGIN (Session State) ---
+if 'user_logged' not in st.session_state:
+    st.session_state.user_logged = False
+
+if not st.session_state.user_logged:
+    st.title("🎫 Accesso all'Asta")
+    with st.form("login_form"):
+        nome = st.text_input("Il tuo Nome")
+        tavolo = st.selectbox("Il tuo Tavolo", df_tavoli["Nome Tavolo"].unique())
+        submit_login = st.form_submit_button("Entra nel Mercante in Fiera")
+        
+        if submit_login and nome:
+            st.session_state.user_logged = True
+            st.session_state.username = nome
+            st.session_state.tavolo = tavolo
+            st.rerun()
+        elif submit_login and not nome:
+            st.error("Per favore, inserisci il tuo nome.")
+else:
+    # --- PAGINA PRINCIPALE ASTA ---
+    st.title(f"🎁 Grande Asta - Benvenuto {st.session_state.username}")
+    st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
+    if st.sidebar.button("Log out"):
+        st.session_state.user_logged = False
+        st.rerun()
+
+    st.subheader("Situazione Carte")
+
+    # Creiamo la tabella delle offerte più alte per ogni carta
+    # Se non ci sono offerte, mettiamo 0
+    def get_best_offers(df_offerte, df_carte):
+        best_offers = []
+        for _, c in df_carte.iterrows():
+            nome_carta = c["Nome Carta"]
+            # Filtriamo le offerte per questa carta
+            offerte_carta = df_offerte[df_offerte["Carta"] == nome_carta]
+            if not offerte_carta.empty:
+                miglior_offerta = offerte_carta.sort_values(by="Offerta", ascending=False).iloc[0]
+                best_offers.append({
+                    "Carta": nome_carta,
+                    "Prezzo Attuale (€)": miglior_offerta["Offerta"],
+                    "In testa il Tavolo": miglior_offerta["Tavolo"]
+                })
+            else:
+                best_offers.append({
+                    "Carta": nome_carta,
+                    "Prezzo Attuale (€)": 0,
+                    "In testa il Tavolo": "Nessuno"
+                })
+        return pd.DataFrame(best_offers)
+
+    df_riepilogo = get_best_offers(df_offerte, df_carte)
+    
+    # Visualizzazione carte
+    for index, row in df_riepilogo.iterrows():
+        col1, col2, col3 = st.columns([2, 2, 1])
+        with col1:
+            st.write(f"### {row['Carta']}")
+        with col2:
+            st.write(f"💰 {row['Prezzo Attuale (€)']} € (Tavolo {row['In testa il Tavolo']})")
+        with col3:
+            if st.button(f"Punta su {row['Carta']}", key=f"btn_{index}"):
+                st.session_state.scelta_carta = row['Carta']
+                st.session_state.prezzo_minimo = row['Prezzo Attuale (€)']
+
+    # --- POPUP OFFERTA ---
+    if 'scelta_carta' in st.session_state:
+        st.divider()
+        st.subheader(f"Fai la tua offerta per: {st.session_state.scelta_carta}")
+        nuova_offerta = st.number_input("Tua Offerta (€)", 
+                                        min_value=int(st.session_state.prezzo_minimo) + 1, 
+                                        step=5)
+        
+        col_invio, col_annulla = st.columns(2)
+        with col_invio:
+            if st.button("Conferma Offerta 🚀"):
+                # Prepariamo la nuova riga
+                nuova_riga = pd.DataFrame([{
+                    "Tavolo": st.session_state.tavolo,
+                    "Carta": st.session_state.scelta_carta,
+                    "Offerta": nuova_offerta,
+                    "Nome Utente": st.session_state.username
+                }])
+                
+                # Aggiorniamo il foglio
+                df_offerte_aggiornato = pd.concat([df_offerte, nuova_riga], ignore_index=True)
+                conn.update(worksheet="Offerte", data=df_offerte_aggiornato)
+                
+                st.success("Offerta inviata!")
+                del st.session_state.scelta_carta # Chiude il form di offerta
+                st.cache_data.clear() # Svuota la cache per ricaricare i dati
+                st.rerun()
+        
+        with col_annulla:
+            if st.button("Annulla"):
+                del st.session_state.scelta_carta
+                st.rerun()
+
+
+
+"""
+import streamlit as st
 import pandas as pd
 
 # 1. CONFIGURAZIONE (Ora funzionerà al 100%)
@@ -45,7 +165,7 @@ if st.checkbox("Mostra Tabella Carte"):
 
 
 
-"""import streamlit as st
+import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
