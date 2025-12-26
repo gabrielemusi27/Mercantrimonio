@@ -1,10 +1,4 @@
 import streamlit as st
-
-st.set_page_config(page_title="Test")
-st.title("Se vedi questo, l'app funziona")
-st.write("Il problema è nella connessione a Google Sheets.")
-
-"""import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
@@ -58,4 +52,4 @@ with st.expander("🔐 Area Admin"):
                     carte_assegnate.add(row['Carta'])
             
             st.table(pd.DataFrame(vincitori))
-"""
+
