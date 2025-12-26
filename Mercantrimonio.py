@@ -2,6 +2,30 @@ import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
+# 1. Configurazione obbligatoria
+st.set_page_config(page_title="Asta Matrimonio", icon="🏆")
+
+st.title("🎁 Verifica Database")
+
+# 2. Tentativo di connessione protetto
+try:
+    conn = st.connection("gsheets", type=GSheetsConnection)
+    st.success("1. Connessione stabilita!")
+    
+    # Prova a leggere il foglio Carte
+    df_carte = conn.read(worksheet="Carte")
+    st.success("2. Foglio 'Carte' trovato e letto!")
+    st.dataframe(df_carte.head()) # Ti mostra le prime righe per conferma
+    
+except Exception as e:
+    st.error("Si è verificato un errore durante la lettura dei dati:")
+    st.code(e)
+    st.info("Verifica che il nome della tab sia esattamente 'Carte' e che il foglio sia condiviso come 'Editor' con chiunque abbia il link.")
+"""
+import streamlit as st
+from streamlit_gsheets import GSheetsConnection
+import pandas as pd
+
 # 1. Configurazione e Connessione
 st.set_page_config(page_title="Asta Matrimonio", icon="🏆")
 conn = st.connection("gsheets", type=GSheetsConnection)
@@ -53,3 +77,4 @@ with st.expander("🔐 Area Admin"):
             
             st.table(pd.DataFrame(vincitori))
 
+"""
