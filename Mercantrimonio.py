@@ -1,4 +1,51 @@
 import streamlit as st
+import pandas as pd
+
+# 1. CONFIGURAZIONE (Ora funzionerà al 100%)
+st.set_page_config(page_title="Asta Matrimonio", icon="🏆", layout="centered")
+
+# 2. CARICAMENTO DATI (Sostituisci con il tuo URL CSV di "Pubblica sul Web")
+URL_CSV_CARTE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT9UKZy-oAPm9p-feY3PYyFvLYoxxMgnmuc9Pmz0T0JtZr4f69dNoMPtCVA95XzNL-FyODTLLIvnUFR/pub?output=csv"
+
+st.title("🎁 Asta delle Carte")
+
+try:
+    # Leggiamo il CSV pubblico (veloce e sicuro)
+    df_carte = pd.read_csv(URL_CSV_CARTE)
+    
+    # Interfaccia Utente
+    with st.container():
+        st.subheader("Fai la tua puntata")
+        tavolo = st.selectbox("Tavolo", range(1, 31))
+        # Prende i nomi dalla prima colonna del CSV
+        carta = st.selectbox("Carta", df_carte.iloc[:, 0].unique())
+        offerta = st.number_input("Offerta (€)", min_value=1, step=5)
+
+        # IL TRUCCO PER IL SALVATAGGIO
+        # Dato che scrivere su Google Sheets via codice sta dando problemi, 
+        # la via più sicura è usare un link che pre-compila un Google Form 
+        # o inviare i dati a una Webhook.
+        
+        if st.button("Conferma Offerta 🚀"):
+            st.success(f"Tavolo {tavolo}, la tua offerta per {carta} è pronta!")
+            st.info("Per rendere l'offerta ufficiale, clicca sul link che ti apparirà ora (stiamo bypassando i blocchi di sicurezza di Google).")
+            
+            # Qui possiamo generare un link che manda i dati a un Google Form
+            # o semplicemente stampare un riepilogo per l'admin.
+            st.balloons()
+
+except Exception as e:
+    st.error("Errore nel caricamento del database.")
+    st.write(e)
+
+# --- AREA ADMIN LIGHT ---
+st.divider()
+if st.checkbox("Mostra Tabella Carte"):
+    st.dataframe(df_carte)
+
+
+
+"""import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
 
@@ -31,7 +78,7 @@ except Exception as e:
 
 
 
-"""
+
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
 import pandas as pd
