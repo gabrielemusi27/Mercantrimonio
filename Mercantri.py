@@ -26,6 +26,7 @@ SPREADSHEET_ID = "1g_FXSodJoWocTc8Ni12sBSDYviQ7oAQBDipVsLzfw5w"
 sh = gc.open_by_key(SPREADSHEET_ID)
 
 # --- FUNZIONI ---
+@st.cache_data(ttl=10)
 def read_sheet(name):
     ws = sh.worksheet(name)
     data = ws.get_all_records()
@@ -35,14 +36,16 @@ def append_row(name, row_dict):
     ws = sh.worksheet(name)
     ws.append_row(list(row_dict.values()))
 
-# Funzione per caricare i dati (senza cache per avere i prezzi sempre aggiornati)
-def load_data():
-    tavoli = read_sheet("Tavoli")
-    carte = read_sheet("Carte")
-    offerte = read_sheet("Offerte")
-    return tavoli, carte, offerte
+def load_static_data():
+    return read_sheet("Tavoli"), read_sheet("Carte")
 
-df_tavoli, df_carte, df_offerte = load_data()
+# Funzione per caricare i dati (senza cache per avere i prezzi sempre aggiornati)
+@st.cache_data(ttl=5)
+def load_offerte():
+    return read_sheet("Offerte")
+
+df_tavoli, df_carte = load_static_data()
+df_offerte = load_offerte()
 
 # --- GESTIONE LOGIN (Session State) ---
 if 'user_logged' not in st.session_state:
