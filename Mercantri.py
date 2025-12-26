@@ -1,18 +1,45 @@
-import streamlit as st
-from streamlit_gsheets import GSheetsConnection
-import pandas as pd
+#import streamlit as st
+#import pandas as pd
 
 # 1. Configurazione Pagina
-st.set_page_config(page_title="Asta Matrimonio", layout="wide")
+#st.set_page_config(page_title="Asta Matrimonio", layout="wide")
 
-# 2. Connessione al Database
-conn = st.connection("gsheets", type=GSheetsConnection)
+import streamlit as st
+import pandas as pd
+import gspread
+from google.oauth2.service_account import Credentials
+
+# --- AUTH GOOGLE ---
+scope = [
+    "https://www.googleapis.com/auth/spreadsheets",
+    "https://www.googleapis.com/auth/drive"
+]
+
+creds = Credentials.from_service_account_info(
+    st.secrets["connections"]["gsheets"]["service_account"],
+    scopes=scope
+)
+
+gc = gspread.authorize(creds)
+
+SPREADSHEET_ID = "1g_FXSodJoWocTc8Ni12sBSDYviQ7oAQBDipVsLzfw5w"
+sh = gc.open_by_key(SPREADSHEET_ID)
+
+# --- FUNZIONI ---
+def read_sheet(name):
+    ws = sh.worksheet(name)
+    data = ws.get_all_records()
+    return pd.DataFrame(data)
+
+def append_row(name, row_dict):
+    ws = sh.worksheet(name)
+    ws.append_row(list(row_dict.values()))
 
 # Funzione per caricare i dati (senza cache per avere i prezzi sempre aggiornati)
 def load_data():
-    tavoli = conn.read(worksheet="Tavoli")
-    carte = conn.read(worksheet="Carte")
-    offerte = conn.read(worksheet="Offerte")
+    tavoli = read_sheet("Tavoli")
+    carte = read_sheet("Carte")
+    offerte = read_sheet("Offerte")
     return tavoli, carte, offerte
 
 df_tavoli, df_carte, df_offerte = load_data()
@@ -102,8 +129,11 @@ else:
                 }])
                 
                 # Aggiorniamo il foglio
-                df_offerte_aggiornato = pd.concat([df_offerte, nuova_riga], ignore_index=True)
-                conn.update(worksheet="Offerte", data=df_offerte_aggiornato)
+                append_row("Offerte", {
+                "Tavolo": st.session_state.tavolo,
+                "Carta": st.session_state.scelta_carta,
+                "Offerta": nuova_offerta,
+                "Nome Utente": st.session_state.username})
                 
                 st.success("Offerta inviata!")
                 del st.session_state.scelta_carta # Chiude il form di offerta
