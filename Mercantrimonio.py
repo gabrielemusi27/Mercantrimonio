@@ -6,9 +6,12 @@ import pandas as pd
 st.set_page_config(page_title="Asta Matrimonio", icon="🏆")
 conn = st.connection("gsheets", type=GSheetsConnection)
 
-# 2. Caricamento Dati
-df_carte = conn.read(worksheet="Carte")
-df_offerte = conn.read(worksheet="Offerte")
+try:
+    df_carte = conn.read(worksheet="Carte")
+    df_offerte = conn.read(worksheet="Offerte")
+except Exception as e:
+    st.error(f"Errore di connessione o fogli mancanti: {e}")
+    st.stop()
 
 # --- INTERFACCIA UTENTE ---
 st.title("🎁 Grande Asta di Matrimonio")
