@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 
 # 1. CONFIGURAZIONE (Ora funzionerà al 100%)
-st.set_page_config(page_title="Asta Matrimonio", icon="🏆", layout="centered")
+st.set_page_config(page_title="Asta Matrimonio", layout="centered")
 
 # 2. CARICAMENTO DATI (Sostituisci con il tuo URL CSV di "Pubblica sul Web")
 URL_CSV_CARTE = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT9UKZy-oAPm9p-feY3PYyFvLYoxxMgnmuc9Pmz0T0JtZr4f69dNoMPtCVA95XzNL-FyODTLLIvnUFR/pub?output=csv"
