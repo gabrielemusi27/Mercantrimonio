@@ -7,20 +7,30 @@ st.set_page_config(page_title="Asta Matrimonio", icon="🏆")
 
 st.title("🎁 Verifica Database")
 
-# 2. Tentativo di connessione protetto
+URL_Carte = "https://docs.google.com/spreadsheets/d/e/2PACX-1vT9UKZy-oAPm9p-feY3PYyFvLYoxxMgnmuc9Pmz0T0JtZr4f69dNoMPtCVA95XzNL-FyODTLLIvnUFR/pubhtml"
+
 try:
-    conn = st.connection("gsheets", type=GSheetsConnection)
-    st.success("1. Connessione stabilita!")
+    # Leggiamo i dati direttamente via URL
+    df_carte = pd.read_csv(URL_CARTE)
+    st.success("Dati caricati con successo!")
     
-    # Prova a leggere il foglio Carte
-    df_carte = conn.read(worksheet="Carte")
-    st.success("2. Foglio 'Carte' trovato e letto!")
-    st.dataframe(df_carte.head()) # Ti mostra le prime righe per conferma
-    
+    # --- INTERFACCIA UTENTE ---
+    with st.form("form_offerta"):
+        tavolo = st.selectbox("Il tuo Tavolo", range(1, 31))
+        # Prende la prima colonna del foglio
+        carta = st.selectbox("Su quale carta punti?", df_carte.iloc[:, 0].unique())
+        valore = st.number_input("Tua Offerta (€)", min_value=1, step=5)
+        submit = st.form_submit_button("Invia Offerta 🚀")
+        
+        if submit:
+            st.warning("Per inviare l'offerta in questa modalità 'light', serve un passaggio extra.")
+            # Qui ti spiegherò come salvare le offerte se questo test funziona
+
 except Exception as e:
-    st.error("Si è verificato un errore durante la lettura dei dati:")
-    st.code(e)
-    st.info("Verifica che il nome della tab sia esattamente 'Carte' e che il foglio sia condiviso come 'Editor' con chiunque abbia il link.")
+    st.error(f"Errore: {e}")
+
+
+
 """
 import streamlit as st
 from streamlit_gsheets import GSheetsConnection
