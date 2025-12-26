@@ -1,5 +1,4 @@
 streamlit>=1.31
-streamlit-gsheets>=0.1.0
-gspread>=6.0.0
-google-auth>=2.25.0
 pandas
+gspread
+google-auth
