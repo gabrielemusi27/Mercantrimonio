@@ -133,10 +133,11 @@ else:
                         # Verifichiamo se nel frattempo qualcuno ha puntato di più
                         # (Evita che il Google Sheet si sporchi con offerte vecchie)
                         
+                        if st.button("Conferma!", key=f"btn_send_{nome_c}", use_container_width=True):
                         if nuova_offerta <= prezzo_attuale:
-                            st.error(f"Qualcuno ha appena puntato {prezzo_attuale}€! Devi offrire di più.")
+                            st.error(f"Qualcuno ha appena puntato {prezzo_attuale}€!")
                         else:
-                            # 1. Scrittura
+                            # 1. SCRITTURA
                             append_row("Offerte", {
                                 "Tavolo": st.session_state.tavolo,
                                 "Carta": nome_c,
@@ -144,17 +145,22 @@ else:
                                 "Nome Utente": st.session_state.username
                             })
                             
-                            # 2. Feedback visivo
-                            st.success("Registrata!")
-                            
-                            # 3. RESET TOTALE
-                            # Puliamo la cache così al riavvio legge i dati nuovi
+                            # 2. TRUCCO PER CHIUDERE IL POPOVER
+                            # Svuotiamo la cache e cambiamo una chiave "fittizia" nel session_state
+                            # Questo costringe Streamlit a distruggere i widget precedenti
                             st.cache_data.clear()
                             
-                            # Aspettiamo mezzo secondo per far vedere il "Registrata!" e poi killiamo la pagina
+                            if "refresh_key" not in st.session_state:
+                                st.session_state.refresh_key = 0
+                            st.session_state.refresh_key += 1 
+
+                                                        # Aspettiamo mezzo secondo per far vedere il "Registrata!" e poi killiamo la pagina
                             # Il rerun chiude forzatamente il popover perché resetta lo script
+                            st.success("Registrata!")
                             time.sleep(0.5)
                             st.rerun()
+                            
+
                             
     """# --- POPUP OFFERTA ---
     if 'scelta_carta' in st.session_state:
