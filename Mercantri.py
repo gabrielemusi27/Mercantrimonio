@@ -100,12 +100,18 @@ else:
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
     # --- ELENCO DELLE CARTE ---
-    df_offerte = load_offerte()
+    st.subheader("Situazione Carte")
+
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
-    for index, row in df_riepilogo.iterrows():
+    # Usiamo enumerate per avere un numero unico (i) per ogni riga
+    for i, row in df_riepilogo.iterrows():
         nome_c = row['Carta']
         prezzo_attuale = int(row['Prezzo Attuale (€)'])
+        
+        # Creiamo una chiave univoca combinando nome carta e indice
+        # Questo risolve l'errore StreamlitDuplicateElementKey
+        chiave_unica = f"{nome_c}_{i}"
         
         with st.container(border=True):
             col1, col2, col3 = st.columns([2, 2, 1.5])
@@ -117,48 +123,31 @@ else:
                 st.caption(f"Tavolo: {row['In testa il Tavolo']}")
             
             with col3:
-                # Il popover si chiuderà automaticamente al st.rerun()
-                with st.popover("Punta 🚀", use_container_width=True):
-                    st.write(f"Offerta per: **{nome_c}**")
-                    
+                # L'expander è più stabile: si chiude da solo al refresh
+                with st.expander("Punta 🚀"):
                     nuova_offerta = st.number_input(
                         "Importo (€)", 
                         min_value=prezzo_attuale + 1, 
                         step=5,
-                        key=f"input_{nome_c}"
+                        key=f"input_{chiave_unica}"
                     )
                     
-                    if st.button("Conferma!", key=f"btn_send_{nome_c}", use_container_width=True):
-                        # --- CONTROLLO DI SICUREZZA ---
-                        # Verifichiamo se nel frattempo qualcuno ha puntato di più
-                        # (Evita che il Google Sheet si sporchi con offerte vecchie)
+                    if st.button("Conferma!", key=f"btn_send_{chiave_unica}", use_container_width=True):
+                        # 1. Scrittura sul foglio
+                        append_row("Offerte", {
+                            "Tavolo": st.session_state.tavolo,
+                            "Carta": nome_c,
+                            "Offerta": nuova_offerta,
+                            "Nome Utente": st.session_state.username
+                        })
                         
-                        if st.button("Conferma!", key=f"btn_send_{nome_c}", use_container_width=True):
-                            if nuova_offerta <= prezzo_attuale:
-                                st.error(f"Qualcuno ha appena puntato {prezzo_attuale}€!")
-                            else:
-                                # 1. SCRITTURA
-                                append_row("Offerte", {
-                                    "Tavolo": st.session_state.tavolo,
-                                    "Carta": nome_c,
-                                    "Offerta": nuova_offerta,
-                                    "Nome Utente": st.session_state.username
-                                })
-                            
-                                # 2. TRUCCO PER CHIUDERE IL POPOVER
-                                # Svuotiamo la cache e cambiamo una chiave "fittizia" nel session_state
-                                # Questo costringe Streamlit a distruggere i widget precedenti
-                                st.cache_data.clear()
-                            
-                                if "refresh_key" not in st.session_state:
-                                    st.session_state.refresh_key = 0
-                                st.session_state.refresh_key += 1 
-    
-                                # Aspettiamo mezzo secondo per far vedere il "Registrata!" e poi killiamo la pagina
-                                # Il rerun chiude forzatamente il popover perché resetta lo script
-                                st.success("Registrata!")
-                                time.sleep(0.5)
-                                st.rerun()
+                        # 2. Reset e chiusura
+                        st.cache_data.clear()
+                        st.success("Registrata!")
+                        time.sleep(0.5)
+                        
+                        # Il rerun ricarica la pagina e l'expander tornerà CHIUSO di default
+                        st.rerun()
                             
 
                             
