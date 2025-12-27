@@ -100,43 +100,48 @@ else:
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
     # --- ELENCO DELLE CARTE ---
-    # --- ELENCO DELLE CARTE ---
-    st.subheader("Situazione Carte")
-
-    df_riepilogo = get_best_offers(df_offerte, df_carte)
-    
     for index, row in df_riepilogo.iterrows():
+        nome_c = row['Carta'] # Usiamo questo come identificatore unico
+        
         with st.container(border=True):
             col1, col2, col3 = st.columns([2, 2, 1.5])
             
             with col1:
-                st.write(f"### {row['Carta']}")
+                st.write(f"### {nome_c}")
             with col2:
                 st.write(f"💰 {row['Prezzo Attuale (€)']} €")
                 st.caption(f"Tavolo: {row['In testa il Tavolo']}")
             
             with col3:
-                # Usiamo il POPOVER: crea un tasto che, se cliccato, apre un box senza ricaricare la pagina
+                # Usiamo il nome della carta nella KEY per evitare salti di popover
                 with st.popover("Punta 🚀", use_container_width=True):
-                    st.write(f"Offerta per: **{row['Carta']}**")
+                    st.write(f"Nuova offerta per: **{nome_c}**")
+                    
+                    # Calcoliamo il minimo (deve essere superiore all'attuale)
+                    prezzo_attuale = int(row['Prezzo Attuale (€)'])
                     
                     nuova_offerta = st.number_input(
                         "Importo (€)", 
-                        min_value=int(row['Prezzo Attuale (€)']) + 1, 
+                        min_value=prezzo_attuale + 1, 
                         step=5,
-                        key=f"input_{index}"
+                        key=f"input_{nome_c}" # Chiave univoca basata sul nome
                     )
                     
-                    if st.button("Conferma!", key=f"send_{index}", use_container_width=True):
+                    if st.button("Conferma!", key=f"btn_send_{nome_c}", use_container_width=True):
+                        # 1. Scrittura immediata
                         append_row("Offerte", {
                             "Tavolo": st.session_state.tavolo,
-                            "Carta": row['Carta'],
+                            "Carta": nome_c,
                             "Offerta": nuova_offerta,
                             "Nome Utente": st.session_state.username
                         })
-                        st.success("Offerta inviata!")
-                        time.sleep(1)
+                        
+                        # 2. Messaggio di successo e reset
+                        st.success(f"Puntata di {nuova_offerta}€ registrata!")
+                        
+                        # 3. Pulizia cache e ricaricamento forzato
                         st.cache_data.clear()
+                        time.sleep(1) # Diamo tempo all'utente di leggere il successo
                         st.rerun()
 
     """# --- POPUP OFFERTA ---
