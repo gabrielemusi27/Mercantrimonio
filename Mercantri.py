@@ -184,12 +184,12 @@ else:
                 st.success("Offerta inviata!")
                 del st.session_state.scelta_carta # Chiude il form di offerta
                 st.cache_data.clear() # Svuota la cache per ricaricare i dati
-                st.rerun()"""
+                st.rerun()
         
         with col_annulla:
             if st.button("Annulla"):
                 del st.session_state.scelta_carta
-                st.rerun()
+                st.rerun()"""
 
 
 
