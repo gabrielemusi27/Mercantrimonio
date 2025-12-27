@@ -74,8 +74,6 @@ else:
         st.session_state.user_logged = False
         st.rerun()
 
-    st.subheader("Situazione Carte")
-
     # Creiamo la tabella delle offerte più alte per ogni carta
     # Se non ci sono offerte, mettiamo 0
     def get_best_offers(df_offerte, df_carte):
