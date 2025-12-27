@@ -100,57 +100,43 @@ else:
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
     # --- ELENCO DELLE CARTE ---
+    # --- ELENCO DELLE CARTE ---
     st.subheader("Situazione Carte")
 
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
     for index, row in df_riepilogo.iterrows():
-        # Creiamo un contenitore per ogni carta
         with st.container(border=True):
-            col1, col2, col3 = st.columns([2, 2, 1])
+            col1, col2, col3 = st.columns([2, 2, 1.5])
             
             with col1:
                 st.write(f"### {row['Carta']}")
             with col2:
                 st.write(f"💰 {row['Prezzo Attuale (€)']} €")
-                st.caption(f"In testa: Tavolo {row['In testa il Tavolo']}")
+                st.caption(f"Tavolo: {row['In testa il Tavolo']}")
+            
             with col3:
-                # Il bottone ora serve solo a "marcare" quale carta vogliamo aprire
-                if st.button(f"Punta", key=f"btn_{index}", use_container_width=True):
-                    st.session_state.scelta_carta = row['Carta']
-                    st.session_state.prezzo_minimo = row['Prezzo Attuale (€)']
-                    # NON mettiamo st.rerun() qui, così l'utente resta nel punto in cui si trova
-
-            # --- BOX OFFERTA "IN LINEA" ---
-            # Se la carta corrente è quella selezionata, mostriamo il form qui sotto
-            if st.session_state.get('scelta_carta') == row['Carta']:
-                st.info(f"Fai la tua offerta per {row['Carta']}")
-                
-                # Usiamo le colonne per rendere il form compatto
-                c1, c2, c3 = st.columns([2, 1, 1])
-                with c1:
+                # Usiamo il POPOVER: crea un tasto che, se cliccato, apre un box senza ricaricare la pagina
+                with st.popover("Punta 🚀", use_container_width=True):
+                    st.write(f"Offerta per: **{row['Carta']}**")
+                    
                     nuova_offerta = st.number_input(
                         "Importo (€)", 
                         min_value=int(row['Prezzo Attuale (€)']) + 1, 
                         step=5,
                         key=f"input_{index}"
                     )
-                with c2:
-                    if st.button("Invia 🚀", key=f"send_{index}", use_container_width=True):
+                    
+                    if st.button("Conferma!", key=f"send_{index}", use_container_width=True):
                         append_row("Offerte", {
                             "Tavolo": st.session_state.tavolo,
                             "Carta": row['Carta'],
                             "Offerta": nuova_offerta,
                             "Nome Utente": st.session_state.username
                         })
-                        st.success("Fatto!")
+                        st.success("Offerta inviata!")
                         time.sleep(1)
-                        del st.session_state.scelta_carta
                         st.cache_data.clear()
-                        st.rerun()
-                with c3:
-                    if st.button("Annulla", key=f"canc_{index}", use_container_width=True):
-                        del st.session_state.scelta_carta
                         st.rerun()
 
     """# --- POPUP OFFERTA ---
