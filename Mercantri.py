@@ -100,8 +100,12 @@ else:
     df_riepilogo = get_best_offers(df_offerte, df_carte)
     
     # --- ELENCO DELLE CARTE ---
+    df_offerte = load_offerte()
+    df_riepilogo = get_best_offers(df_offerte, df_carte)
+    
     for index, row in df_riepilogo.iterrows():
-        nome_c = row['Carta'] # Usiamo questo come identificatore unico
+        nome_c = row['Carta']
+        prezzo_attuale = int(row['Prezzo Attuale (€)'])
         
         with st.container(border=True):
             col1, col2, col3 = st.columns([2, 2, 1.5])
@@ -109,41 +113,49 @@ else:
             with col1:
                 st.write(f"### {nome_c}")
             with col2:
-                st.write(f"💰 {row['Prezzo Attuale (€)']} €")
+                st.write(f"💰 {prezzo_attuale} €")
                 st.caption(f"Tavolo: {row['In testa il Tavolo']}")
             
             with col3:
-                # Usiamo il nome della carta nella KEY per evitare salti di popover
+                # Il popover si chiuderà automaticamente al st.rerun()
                 with st.popover("Punta 🚀", use_container_width=True):
-                    st.write(f"Nuova offerta per: **{nome_c}**")
-                    
-                    # Calcoliamo il minimo (deve essere superiore all'attuale)
-                    prezzo_attuale = int(row['Prezzo Attuale (€)'])
+                    st.write(f"Offerta per: **{nome_c}**")
                     
                     nuova_offerta = st.number_input(
                         "Importo (€)", 
                         min_value=prezzo_attuale + 1, 
                         step=5,
-                        key=f"input_{nome_c}" # Chiave univoca basata sul nome
+                        key=f"input_{nome_c}"
                     )
                     
                     if st.button("Conferma!", key=f"btn_send_{nome_c}", use_container_width=True):
-                        # 1. Scrittura immediata
-                        append_row("Offerte", {
-                            "Tavolo": st.session_state.tavolo,
-                            "Carta": nome_c,
-                            "Offerta": nuova_offerta,
-                            "Nome Utente": st.session_state.username
-                        })
+                        # --- CONTROLLO DI SICUREZZA ---
+                        # Verifichiamo se nel frattempo qualcuno ha puntato di più
+                        # (Evita che il Google Sheet si sporchi con offerte vecchie)
                         
-                        # 2. Messaggio di successo e reset
-                        st.success(f"Puntata di {nuova_offerta}€ registrata!")
-                        
-                        # 3. Pulizia cache e ricaricamento forzato
-                        st.cache_data.clear()
-                        time.sleep(1) # Diamo tempo all'utente di leggere il successo
-                        st.rerun()
-
+                        if nuova_offerta <= prezzo_attuale:
+                            st.error(f"Qualcuno ha appena puntato {prezzo_attuale}€! Devi offrire di più.")
+                        else:
+                            # 1. Scrittura
+                            append_row("Offerte", {
+                                "Tavolo": st.session_state.tavolo,
+                                "Carta": nome_c,
+                                "Offerta": nuova_offerta,
+                                "Nome Utente": st.session_state.username
+                            })
+                            
+                            # 2. Feedback visivo
+                            st.success("Registrata!")
+                            
+                            # 3. RESET TOTALE
+                            # Puliamo la cache così al riavvio legge i dati nuovi
+                            st.cache_data.clear()
+                            
+                            # Aspettiamo mezzo secondo per far vedere il "Registrata!" e poi killiamo la pagina
+                            # Il rerun chiude forzatamente il popover perché resetta lo script
+                            time.sleep(0.5)
+                            st.rerun()
+                            
     """# --- POPUP OFFERTA ---
     if 'scelta_carta' in st.session_state:
         st.divider()
