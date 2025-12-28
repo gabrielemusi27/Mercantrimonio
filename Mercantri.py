@@ -54,7 +54,7 @@ def load_static_data():
     return read_sheet("Tavoli"), read_sheet("Carte")
 
 @st.cache_data(ttl=5)
-def load_offerte():
+def load_offerte(force=False):
     if force:
         # Legge direttamente senza usare @st.cache_data
         ws = sh.worksheet("Offerte")
