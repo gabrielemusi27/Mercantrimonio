@@ -94,4 +94,100 @@ else:
     # --- LOGICA REPORT FINALE (Greedy/Cascata) ---
     if st.session_state.get('show_report', False):
         st.header("🏆 Risultati Ufficiali")
-        df_
+        df_fresche = load_offerte(force=True)
+        
+        # Merge con le carte per sapere il premio
+        df_lavoro = df_fresche.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+        # Ordine: Offerta più alta, poi Premio più alto
+        df_lavoro = df_lavoro.sort_values(by=['Offerta', 'Premio'], ascending=False)
+        
+        assegnazioni, c_presse, t_presi = [], set(), set()
+        for _, r in df_lavoro.iterrows():
+            if r['Carta'] not in c_presse and r['Tavolo'] not in t_presi:
+                assegnazioni.append({
+                    "Carta": r['Carta'], 
+                    "Tavolo": r['Tavolo'], 
+                    "Offerta": r['Offerta'], 
+                    "Premio": r['Premio'],
+                    "Vincitore": r['Nome Utente']
+                })
+                c_presse.add(r['Carta'])
+                t_presi.add(r['Tavolo'])
+        
+        df_f = pd.DataFrame(assegnazioni)
+        if not df_f.empty:
+            st.dataframe(df_f, use_container_width=True)
+            st.metric("Totale Raccolto", f"{df_f['Offerta'].sum()} €")
+        
+        if st.button("Chiudi Report"):
+            st.session_state.show_report = False
+            st.rerun()
+        st.divider()
+
+    # --- INTERFACCIA UTENTE ---
+    st.title(f"🎁 Benvuto all'Asta, {st.session_state.username}!")
+    st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
+    
+    if asta_bloccata:
+        st.error("🚫 L'asta è stata chiusa dall'amministratore.")
+    else:
+        st.success("✅ Asta in corso! Fai la tua offerta.")
+
+    # --- ELENCO CARTE (CON IMMAGINI) ---
+    df_offerte = load_offerte()
+    
+    # Prepariamo la lista con le offerte più alte per ogni carta
+    best_list = []
+    for _, c in df_carte.iterrows():
+        nc = c["Nome Carta"]
+        off = df_offerte[df_offerte["Carta"] == nc]
+        if not off.empty:
+            m = off.sort_values(by="Offerta", ascending=False).iloc[0]
+            best_list.append({"Carta": nc, "Prezzo": m["Offerta"], "Tavolo": m["Tavolo"], "Img": c["Immagine"]})
+        else:
+            best_list.append({"Carta": nc, "Prezzo": 0, "Tavolo": "Nessuno", "Img": c["Immagine"]})
+    
+    # Mostriamo le carte in container
+    for i, row in enumerate(best_list):
+        with st.container(border=True):
+            col_img, col_txt, col_btn = st.columns([1, 2, 1])
+            
+            with col_img:
+                if row['Img']:
+                    st.image(row['Img'], use_container_width=True)
+                else:
+                    st.write("🖼️")
+            
+            with col_txt:
+                st.write(f"### {row['Carta']}")
+                st.write(f"💰 Prezzo attuale: **{row['Prezzo']} €**")
+                st.caption(f"In testa: {row['Tavolo']}")
+            
+            with col_btn:
+                chiave = f"btn_{row['Carta']}_{i}"
+                if asta_bloccata:
+                    st.button("🔒 Chiusa", key=chiave, disabled=True, use_container_width=True)
+                else:
+                    with st.popover("🚀 Punta", use_container_width=True):
+                        st.write(f"Offerta per {row['Carta']}")
+                        nuova = st.number_input(
+                            "Importo (€)", 
+                            min_value=int(row['Prezzo']) + 5, 
+                            step=5, 
+                            key=f"in_{chiave}"
+                        )
+                        if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
+                            append_row("Offerte", {
+                                "Tavolo": st.session_state.tavolo,
+                                "Carta": row['Carta'],
+                                "Offerta": nuova,
+                                "Nome Utente": st.session_state.username
+                            })
+                            st.cache_data.clear()
+                            st.success("Offerta inviata!")
+                            time.sleep(0.5)
+                            st.rerun()
+
+    if st.sidebar.button("Log out"):
+        st.session_state.user_logged = False
+        st.rerun()
