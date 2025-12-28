@@ -171,7 +171,7 @@ else:
                 if asta_bloccata:
                     st.button("Chiusa", key=chiave, disabled=True, use_container_width=True)
                 else:
-                    with st.popover("Punta", use_container_width=True):
+                    with st.popover("Punta 🚀", use_container_width=True):
                         nuova = st.number_input("Tua offerta", min_value=int(row['Prezzo'])+5, step=5, key=f"in_{chiave}")
                         if st.button("Conferma", key=f"go_{chiave}"):
                             append_row("Offerte", {"T": st.session_state.tavolo, "C": row['Carta'], "O": nuova, "U": st.session_state.username})
