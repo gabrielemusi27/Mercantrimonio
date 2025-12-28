@@ -200,7 +200,7 @@ else:
         st.divider()
         
     # --- INTESTAZIONE ---
-    st.title(f"🎁 Grande Asta - {st.session_state.username}")
+    st.title(f"🎁 Benvenuto all'asta, {st.session_state.username}!")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
     if st.sidebar.button("Esci"):
         st.session_state.user_logged = False
