@@ -55,7 +55,14 @@ def load_static_data():
 
 @st.cache_data(ttl=5)
 def load_offerte():
-    return read_sheet("Offerte")
+    if force:
+        # Legge direttamente senza usare @st.cache_data
+        ws = sh.worksheet("Offerte")
+        data = ws.get_all_records()
+        return pd.DataFrame(data)
+    else:
+        # Usa la versione con cache per il caricamento normale della pagina
+        return read_sheet("Offerte")
 
 # --- LOGICA OFFERTE ---
 def get_best_offers(df_o, df_c):
@@ -126,9 +133,14 @@ else:
         st.divider()
         st.header("🏆 Assegnazione Finale Univoca")
 
-        # 1. Preparazione dati
-        # Uniamo le offerte con i premi
-        df_lavorazione = df_offerte.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+        # --- FORZIAMO LA LETTURA FRESCA DAL DB ---
+        with st.spinner("Recupero ultime offerte al millesimo di secondo..."):
+            df_offerte_fresche = load_offerte(force=True)
+            # Ricalcoliamo il riepilogo con i dati appena scaricati
+            df_riepilogo_fresco = get_best_offers(df_offerte_fresche, df_carte)
+        
+        # 1. Preparazione dati (usando df_offerte_fresche)
+        df_lavorazione = df_offerte_fresche.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
         df_lavorazione = df_lavorazione.sort_values(by=['Offerta', 'Premio'], ascending=False)
         
         assegnazioni = []
@@ -149,12 +161,43 @@ else:
 
         df_final_report = pd.DataFrame(assegnazioni)
 
-        # 3. Identificazione Esclusi
+        # 3. Identificazione Esclusi (Tavoli e Carte)
         tutti_i_tavoli = set(df_tavoli["Nome Tavolo"].unique())
         tutte_le_carte = set(df_carte["Nome Carta"].unique())
-        
         tavoli_esclusi = tutti_i_tavoli - tavoli_serviti
         carte_escluse = tutte_le_carte - carte_assegnate
+
+        # 4. Visualizzazione Warning (Esclusi)
+        col_t, col_c = st.columns(2)
+        with col_t:
+            if tavoli_esclusi:
+                st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
+            else:
+                st.success("🎉 Tutti i tavoli hanno un premio!")
+        
+        with col_c:
+            if carte_escluse:
+                st.warning(f"📦 **Carte non assegnate ({len(carte_escluse)}):**\n" + ", ".join(carte_escluse))
+            else:
+                st.success("🃏 Tutte le carte assegnate!")
+
+        # 5. Tabella Risultati
+        if not df_final_report.empty:
+            df_final_report = df_final_report.sort_values(by="Premio Valore", ascending=False)
+            st.table(df_final_report.style.format({"Offerta (€)": "{} €", "Premio Valore": "{} €"}))
+            
+            totale_raccolto = df_final_report["Offerta (€)"].sum()
+            st.metric("💰 Totale Raccolto", f"{totale_raccolto} €")
+        else:
+            st.info("Nessuna offerta registrata.")
+
+        if st.button("Aggiorna Report (Ricarica Dati)"):
+            st.rerun()
+
+        if st.button("Chiudi Report"):
+            st.session_state.show_report = False
+            st.rerun()
+        st.divider()
 
         # 4. Visualizzazione Warning (Esclusi)
         col_t, col_c = st.columns(2)
