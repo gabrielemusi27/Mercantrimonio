@@ -218,21 +218,30 @@ else:
     st.subheader("Situazione Carte")
 
     # --- CICLO VISUALIZZAZIONE CARTE ---
-    for i, row in df_riepilogo.iterrows():
+    df_riepilogo_img = df_riepilogo.merge(df_carte[['Nome Carta', 'Immagine']], left_on='Carta', right_on='Nome Carta')
+
+    for i, row in df_riepilogo_img.iterrows():
         nome_c = row['Carta']
         prezzo_attuale = int(row['Prezzo'])
-        chiave_unica = f"{nome_c}_{i}" # Chiave univoca anti-errore
+        url_img = row['Immagine'] # Il link che hai messo nel foglio
+        chiave_unica = f"{nome_c}_{i}"
 
         with st.container(border=True):
-            col1, col2, col3 = st.columns([2, 2, 1.5])
+            # Cambiamo le proporzioni delle colonne per far stare la foto
+            col_img, col_info, col_btn = st.columns([1.2, 2, 1.2])
             
-            with col1:
+            with col_img:
+                if url_img:
+                    st.image(url_img, use_container_width=True)
+                else:
+                    st.write("🖼️") # Placeholder se manca la foto
+            
+            with col_info:
                 st.write(f"### {nome_c}")
-            with col2:
                 st.write(f"💰 **{prezzo_attuale} €**")
-                st.caption(f"In testa: Tavolo {row['Tavolo']}")
+                st.caption(f"In testa: {row['Tavolo']}")
             
-            with col3:
+            with col_btn:
                 if asta_bloccata:
                     st.button("Chiusa 🔒", key=f"lock_{chiave_unica}", disabled=True, use_container_width=True)
                 else:
@@ -245,7 +254,6 @@ else:
                             key=f"in_{chiave_unica}"
                         )
                         if st.button("Conferma", key=f"go_{chiave_unica}", use_container_width=True):
-                            # Scrittura su Google Sheets
                             append_row("Offerte", {
                                 "Tavolo": st.session_state.tavolo,
                                 "Carta": nome_c,
@@ -253,6 +261,8 @@ else:
                                 "Nome Utente": st.session_state.username
                             })
                             st.cache_data.clear()
-                            st.success("Registrata!")
+                            st.success("Presa!")
                             time.sleep(0.6)
                             st.rerun()
+    
+    
