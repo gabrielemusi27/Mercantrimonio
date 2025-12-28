@@ -67,6 +67,58 @@ if not st.session_state.user_logged:
         elif submit_login and not nome:
             st.error("Per favore, inserisci il tuo nome.")
 else:
+
+    # --- LOGICA DI STATO LOCALE ---
+    # Usiamo il session_state per gestire l'asta senza interrogare Google ogni secondo
+    if 'asta_attiva' not in st.session_state:
+        st.session_state.asta_attiva = False
+    if 'fine_asta' not in st.session_state:
+        st.session_state.fine_asta = None
+    
+    # --- FUNZIONE ADMIN ---
+    def interfaccia_admin():
+        st.sidebar.markdown("---")
+        st.sidebar.subheader("🛠 Area Riservata Admin")
+        
+        status = "ATTIVA" if st.session_state.asta_attiva else "NON ATTIVA"
+        st.sidebar.write(f"Stato: **{status}**")
+        
+        durata = st.sidebar.number_input("Durata asta (minuti)", min_value=1, value=30)
+        
+        if not st.session_state.asta_attiva:
+            if st.sidebar.button("Fai partire l'asta! 🚀"):
+                st.session_state.asta_attiva = True
+                st.session_state.fine_asta = time.time() + (durata * 60)
+                st.rerun()
+        else:
+            if st.sidebar.button("STOP ASTA 🛑"):
+                st.session_state.asta_attiva = False
+                st.session_state.fine_asta = None
+                st.rerun()
+    
+    # --- LOGICA DI ACCESSO ---
+    # Verifichiamo se l'utente è l'Admin
+    is_admin = (st.session_state.get('username') == "Gabriele Musicò")
+    
+    if is_admin:
+        interfaccia_admin()
+    
+    # --- CALCOLO TIMER (Solo se attiva) ---
+    timer_testo = ""
+    asta_bloccata = not st.session_state.asta_attiva
+    
+    if st.session_state.asta_attiva and st.session_state.fine_asta:
+        secondi_rimanenti = int(st.session_state.fine_asta - time.time())
+        if secondi_rimanenti <= 0:
+            st.session_state.asta_attiva = False
+            asta_bloccata = True
+            st.error("⌛ TEMPO SCADUTO! L'asta è terminata.")
+        else:
+            mins, secs = divmod(secondi_rimanenti, 60)
+            timer_testo = f"⏳ Tempo rimasto: {mins:02d}:{secs:02d}"
+            st.warning(timer_testo)
+
+    
     # --- PAGINA PRINCIPALE ASTA ---
     st.title(f"🎁 Grande Asta - Benvenuto {st.session_state.username}")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
@@ -123,31 +175,35 @@ else:
                 st.caption(f"Tavolo: {row['In testa il Tavolo']}")
             
             with col3:
-                # L'expander è più stabile: si chiude da solo al refresh
-                with st.expander("Punta 🚀"):
-                    nuova_offerta = st.number_input(
-                        "Importo (€)", 
-                        min_value=prezzo_attuale + 1, 
-                        step=5,
-                        key=f"input_{chiave_unica}"
-                    )
-                    
-                    if st.button("Conferma!", key=f"btn_send_{chiave_unica}", use_container_width=True):
-                        # 1. Scrittura sul foglio
-                        append_row("Offerte", {
-                            "Tavolo": st.session_state.tavolo,
-                            "Carta": nome_c,
-                            "Offerta": nuova_offerta,
-                            "Nome Utente": st.session_state.username
-                        })
+                if asta_bloccata:
+                    st.button("Chiusa 🔒", key=f"disabled_{chiave_unica}", disabled=True, use_container_width=True)
+                else:
+                    with st.popover("Punta 🚀", use_container_width=True):
+                    # L'expander è più stabile: si chiude da solo al refresh
+                    with st.expander("Punta 🚀"):
+                        nuova_offerta = st.number_input(
+                            "Importo (€)", 
+                            min_value=prezzo_attuale + 1, 
+                            step=5,
+                            key=f"input_{chiave_unica}"
+                        )
                         
-                        # 2. Reset e chiusura
-                        st.cache_data.clear()
-                        st.success("Registrata!")
-                        time.sleep(0.5)
-                        
-                        # Il rerun ricarica la pagina e l'expander tornerà CHIUSO di default
-                        st.rerun()
+                        if st.button("Conferma!", key=f"btn_send_{chiave_unica}", use_container_width=True):
+                            # 1. Scrittura sul foglio
+                            append_row("Offerte", {
+                                "Tavolo": st.session_state.tavolo,
+                                "Carta": nome_c,
+                                "Offerta": nuova_offerta,
+                                "Nome Utente": st.session_state.username
+                            })
+                            
+                            # 2. Reset e chiusura
+                            st.cache_data.clear()
+                            st.success("Registrata!")
+                            time.sleep(0.5)
+                            
+                            # Il rerun ricarica la pagina e l'expander tornerà CHIUSO di default
+                            st.rerun()
                             
 
                             
