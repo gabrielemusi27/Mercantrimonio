@@ -165,7 +165,7 @@ else:
             with col_txt:
                 st.write(f"### {row['Carta']}")
                 st.write(f"💰 **{row['Prezzo']} €**")
-                st.caption(f"Leader: {row['Tavolo']}")
+                st.caption(f"Tavolo in testa: {row['Tavolo']}")
             with col_btn:
                 chiave = f"btn_{row['Carta']}_{i}"
                 if asta_bloccata:
