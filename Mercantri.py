@@ -86,7 +86,7 @@ else:
             if st.button("📊 GENERA REPORT FINALE"):
                 st.session_state.show_report = True
             
-            if st.button("🔄 Ricarica Carte/Tavoli da Google"):
+            if st.button("🔄 Ricarica Carte eTavoli"):
                 del st.session_state.df_tavoli
                 del st.session_state.df_carte
                 st.rerun()
