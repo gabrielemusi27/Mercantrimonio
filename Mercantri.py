@@ -124,26 +124,67 @@ else:
     # --- VISUALIZZAZIONE REPORT FINALE (Sopra la lista carte se attivo) ---
     if st.session_state.get('show_report', False):
         st.divider()
-        st.header("🏆 Riepilogo Vincitori Asta")
+        st.header("🏆 Assegnazione Finale Univoca")
 
-        df_riepilogo = get_best_offers(df_offerte, df_carte)
+        # 1. Preparazione dati
+        # Uniamo le offerte con i premi
+        df_lavorazione = df_offerte.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+        df_lavorazione = df_lavorazione.sort_values(by=['Offerta', 'Premio'], ascending=False)
         
-        # Uniamo i dati delle offerte migliori con i premi della tabella Carte
-        df_vincitori = df_riepilogo.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+        assegnazioni = []
+        carte_assegnate = set()
+        tavoli_serviti = set()
+
+        # 2. Algoritmo a cascata (Greedy)
+        for _, row in df_lavorazione.iterrows():
+            if row['Carta'] not in carte_assegnate and row['Tavolo'] not in tavoli_serviti:
+                assegnazioni.append({
+                    "Carta": row['Carta'],
+                    "Tavolo": row['Tavolo'],
+                    "Offerta (€)": row['Offerta'],
+                    "Premio Valore": row['Premio']
+                })
+                carte_assegnate.add(row['Carta'])
+                tavoli_serviti.add(row['Tavolo'])
+
+        df_final_report = pd.DataFrame(assegnazioni)
+
+        # 3. Identificazione Esclusi
+        tutti_i_tavoli = set(df_tavoli["Nome Tavolo"].unique())
+        tutte_le_carte = set(df_carte["Nome Carta"].unique())
         
-        # Pulizia e ordinamento per Premio Decrescente
-        df_finale = df_vincitori[['Carta', 'Tavolo', 'Prezzo', 'Premio']].copy()
-        df_finale = df_finale.sort_values(by='Premio', ascending=False)
+        tavoli_esclusi = tutti_i_tavoli - tavoli_serviti
+        carte_escluse = tutte_le_carte - carte_assegnate
+
+        # 4. Visualizzazione Warning (Esclusi)
+        col_t, col_c = st.columns(2)
+        with col_t:
+            if tavoli_esclusi:
+                st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
+            else:
+                st.success("🎉 Tutti i tavoli hanno un premio!")
         
-        # Visualizzazione Tabella Admin
-        st.table(df_finale.style.format({"Prezzo": "{} €", "Premio": "{} €"}))
-        
-        # Bottone per chiudere il report
+        with col_c:
+            if carte_escluse:
+                st.warning(f"📦 **Carte non assegnate ({len(carte_escluse)}):**\n" + ", ".join(carte_escluse))
+            else:
+                st.success("🃏 Tutte le carte sono state assegnate!")
+
+        # 5. Tabella Risultati (Ordinata per Premio decrescente)
+        if not df_final_report.empty:
+            df_final_report = df_final_report.sort_values(by="Premio Valore", ascending=False)
+            st.table(df_final_report.style.format({"Offerta (€)": "{} €", "Premio Valore": "{} €"}))
+            
+            totale_raccolto = df_final_report["Offerta (€)"].sum()
+            st.metric("💰 Totale Raccolto", f"{totale_raccolto} €")
+        else:
+            st.info("Nessuna offerta registrata.")
+
         if st.button("Chiudi Report"):
             st.session_state.show_report = False
             st.rerun()
         st.divider()
-
+        
     # --- INTESTAZIONE ---
     st.title(f"🎁 Grande Asta - {st.session_state.username}")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
