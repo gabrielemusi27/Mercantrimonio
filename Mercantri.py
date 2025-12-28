@@ -173,8 +173,8 @@ else:
                         st.write(f"Offerta per {row['Carta']}")
                         nuova = st.number_input(
                             "Importo (€)", 
-                            min_value=int(row['Prezzo']) + 5, 
-                            step=5, 
+                            min_value=int(row['Prezzo']) + 1, 
+                            step=1, 
                             key=f"in_{chiave}"
                         )
                         if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
