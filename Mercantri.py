@@ -86,14 +86,43 @@ else:
     if st.session_state.username == "Gabriele Musicò":
         with st.sidebar.expander("🛠 Pannello Admin", expanded=True):
             st.write(f"Stato: **{stato_asta}**")
+            
+            # Pulsanti di controllo stato
             if not asta_bloccata:
-                if st.button("🔴 CHIUDI ASTA PER TUTTI"):
+                if st.button("🔴 CHIUDI ASTA PER TUTTI", use_container_width=True):
                     set_status_centrale("CHIUSA")
                     st.rerun()
             else:
-                if st.button("🟢 RIAPRI ASTA"):
+                if st.button("🟢 RIAPRI ASTA", use_container_width=True):
                     set_status_centrale("APERTA")
                     st.rerun()
+            
+            st.markdown("---")
+            
+            # NUOVO PULSANTE REPORT FINALE
+            if st.button("📊 GENERA REPORT VINCITORI", use_container_width=True):
+                st.session_state.show_report = True
+
+    # --- VISUALIZZAZIONE REPORT FINALE (Sopra la lista carte se attivo) ---
+    if st.session_state.get('show_report', False):
+        st.divider()
+        st.header("🏆 Riepilogo Vincitori Asta")
+        
+        # Uniamo i dati delle offerte migliori con i premi della tabella Carte
+        df_vincitori = df_riepilogo.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+        
+        # Pulizia e ordinamento per Premio Decrescente
+        df_finale = df_vincitori[['Carta', 'Tavolo', 'Prezzo', 'Premio']].copy()
+        df_finale = df_finale.sort_values(by='Premio', ascending=False)
+        
+        # Visualizzazione Tabella Admin
+        st.table(df_finale.style.format({"Prezzo": "{} €", "Premio": "{} €"}))
+        
+        # Bottone per chiudere il report
+        if st.button("Chiudi Report"):
+            st.session_state.show_report = False
+            st.rerun()
+        st.divider()
 
     # --- INTESTAZIONE ---
     st.title(f"🎁 Grande Asta - {st.session_state.username}")
