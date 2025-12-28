@@ -168,7 +168,8 @@ else:
                 if asta_bloccata:
                     st.button("🔒 Chiusa", key=chiave, disabled=True, use_container_width=True)
                 else:
-                    with st.popover("🚀 Punta", use_container_width=True):
+                    # Sostituito Popover con Expander per stabilità su mobile
+                    with st.expander("🚀 Punta", expanded=False):
                         st.write(f"Offerta per {row['Carta']}")
                         nuova = st.number_input(
                             "Importo (€)", 
@@ -183,9 +184,11 @@ else:
                                 "Offerta": nuova,
                                 "Nome Utente": st.session_state.username
                             })
+                            # Pulizia cache per aggiornare i prezzi ovunque
                             st.cache_data.clear()
                             st.success("Offerta inviata!")
                             time.sleep(0.5)
+                            # Il rerun ricarica la pagina e l'expander tornerà CHIUSO
                             st.rerun()
 
     if st.sidebar.button("Log out"):
