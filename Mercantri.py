@@ -131,7 +131,7 @@ else:
         st.divider()
 
     # --- INTERFACCIA UTENTE ---
-    st.title(f"🎁 Mercante in Fiera - {st.session_state.username}")
+    st.title(f"🎁 Benvenuto all'Asta, {st.session_state.username}!")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
     if st.sidebar.button("Logout"):
         st.session_state.user_logged = False
