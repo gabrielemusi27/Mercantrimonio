@@ -57,6 +57,24 @@ def load_static_data():
 def load_offerte():
     return read_sheet("Offerte")
 
+# --- LOGICA OFFERTE ---
+def get_best_offers(df_o, df_c):
+    best = []
+    for _, c in df_c.iterrows():
+        nome_carta = c["Nome Carta"]
+        offerte_c = df_o[df_o["Carta"] == nome_carta]
+        if not offerte_c.empty:
+            max_off = offerte_c.sort_values(by="Offerta", ascending=False).iloc[0]
+            best.append({
+                "Carta": nome_carta,
+                "Prezzo": max_off["Offerta"],
+                "Tavolo": max_off["Tavolo"]
+            })
+        else:
+            best.append({"Carta": nome_carta, "Prezzo": 0, "Tavolo": "Nessuno"})
+    return pd.DataFrame(best)
+
+
 # --- CARICAMENTO DATI ---
 df_tavoli, df_carte = load_static_data()
 df_offerte = load_offerte()
@@ -138,22 +156,7 @@ else:
     else:
         st.success("✅ ASTA APERTA! Fai la tua offerta.")
 
-    # --- LOGICA OFFERTE ---
-    def get_best_offers(df_o, df_c):
-        best = []
-        for _, c in df_c.iterrows():
-            nome_carta = c["Nome Carta"]
-            offerte_c = df_o[df_o["Carta"] == nome_carta]
-            if not offerte_c.empty:
-                max_off = offerte_c.sort_values(by="Offerta", ascending=False).iloc[0]
-                best.append({
-                    "Carta": nome_carta,
-                    "Prezzo": max_off["Offerta"],
-                    "Tavolo": max_off["Tavolo"]
-                })
-            else:
-                best.append({"Carta": nome_carta, "Prezzo": 0, "Tavolo": "Nessuno"})
-        return pd.DataFrame(best)
+
 
     df_riepilogo = get_best_offers(df_offerte, df_carte)
 
