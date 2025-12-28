@@ -150,13 +150,13 @@ else:
     # Mostriamo le carte in container
     for i, row in enumerate(best_list):
         with st.container(border=True):
-            col_img, col_txt, col_btn = st.columns([1, 2, 1])
-            """
-            with col_img:
-                if row['Img']:
-                    st.image(row['Img'], use_container_width=True)
-                else:
-                    st.write("🖼️")""" #SCOMMENTO SE VOGLIO ANCHE LE IMMAGINI!
+            #col_img, col_txt, col_btn = st.columns([1, 2, 1])
+            col_txt, col_btn = st.columns([2, 1])
+            #with col_img:
+                #if row['Img']:
+                #    st.image(row['Img'], use_container_width=True)
+                #else:
+                #    st.write("🖼️")""" #SCOMMENTO SE VOGLIO ANCHE LE IMMAGINI!
             
             with col_txt:
                 st.write(f"### {row['Carta']}")
