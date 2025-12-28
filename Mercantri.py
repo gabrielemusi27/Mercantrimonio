@@ -107,6 +107,8 @@ else:
     if st.session_state.get('show_report', False):
         st.divider()
         st.header("🏆 Riepilogo Vincitori Asta")
+
+        df_riepilogo = get_best_offers(df_offerte, df_carte)
         
         # Uniamo i dati delle offerte migliori con i premi della tabella Carte
         df_vincitori = df_riepilogo.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
