@@ -198,35 +198,6 @@ else:
             st.session_state.show_report = False
             st.rerun()
         st.divider()
-
-        # 4. Visualizzazione Warning (Esclusi)
-        col_t, col_c = st.columns(2)
-        with col_t:
-            if tavoli_esclusi:
-                st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
-            else:
-                st.success("🎉 Tutti i tavoli hanno un premio!")
-        
-        with col_c:
-            if carte_escluse:
-                st.warning(f"📦 **Carte non assegnate ({len(carte_escluse)}):**\n" + ", ".join(carte_escluse))
-            else:
-                st.success("🃏 Tutte le carte sono state assegnate!")
-
-        # 5. Tabella Risultati (Ordinata per Premio decrescente)
-        if not df_final_report.empty:
-            df_final_report = df_final_report.sort_values(by="Premio Valore", ascending=False)
-            st.table(df_final_report.style.format({"Offerta (€)": "{} €", "Premio Valore": "{} €"}))
-            
-            totale_raccolto = df_final_report["Offerta (€)"].sum()
-            st.metric("💰 Totale Raccolto", f"{totale_raccolto} €")
-        else:
-            st.info("Nessuna offerta registrata.")
-
-        if st.button("Chiudi Report"):
-            st.session_state.show_report = False
-            st.rerun()
-        st.divider()
         
     # --- INTESTAZIONE ---
     st.title(f"🎁 Grande Asta - {st.session_state.username}")
