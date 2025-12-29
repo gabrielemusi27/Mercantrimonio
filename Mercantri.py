@@ -50,7 +50,7 @@ if 'user_logged' not in st.session_state:
     st.session_state.user_logged = False
 
 if not st.session_state.user_logged:
-    st.title("🎫 Benvenuti all'Asta!")
+    st.title("🎫 Benvenuti al Mercantrimonio!")
     with st.form("login_form"):
         nome = st.text_input("Inserisci il tuo Nome")
         tavolo = st.selectbox("Seleziona il tuo Tavolo", df_tavoli["Nome Tavolo"].unique())
