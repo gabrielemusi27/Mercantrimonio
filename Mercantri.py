@@ -125,7 +125,7 @@ else:
         st.divider()
 
     # --- INTERFACCIA UTENTE ---
-    st.title(f"🎁 Benvuto all'Asta, {st.session_state.username}!")
+    st.title(f"🎁 Benvuto al Mercantrimonio, {st.session_state.username}!")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
     
     if asta_bloccata:
