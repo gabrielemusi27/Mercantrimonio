@@ -91,12 +91,6 @@ else:
                 del st.session_state.df_carte
                 st.rerun()
 
-    # --- LOGICA REPORT FINALE (Greedy/Cascata) ---
-    Hai ragione, perdonami! Nella foga di ottimizzare le chiamate API ho potato un po' troppo. Quella parte è fondamentale per te per capire se devi fare un ultimo appello al microfono per i tavoli rimasti a bocca asciutta.
-
-Ecco il blocco del Report Finale completo di logica greedy, calcolo degli esclusi e visualizzazione chiara, pronto per essere incollato.
-
-Python
 
     # --- LOGICA REPORT FINALE (Greedy/Cascata con Esclusi) ---
     if st.session_state.get('show_report', False):
