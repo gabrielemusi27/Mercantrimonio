@@ -147,7 +147,7 @@ else:
         if not df_f.empty:
             # Ordiniamo il report finale per Premio (dal più alto al più basso) per la lettura al microfono
             df_f = df_f.sort_values(by="Premio", ascending=False)
-            st.table(df_f.style.format({"Offerta": "{} €", "Premio": "{} €"}))
+            st.table(df_f.style.format({"Offerta": "{} €", "Premio": "{}"}))
             
             st.metric("💰 Totale Raccolto", f"{df_f['Offerta'].sum()} €")
         else:
