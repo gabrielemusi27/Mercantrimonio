@@ -67,7 +67,7 @@ else:
     asta_bloccata = not global_state["asta_aperta"]
 
     # --- PANNELLO ADMIN (Solo per te) ---
-    if st.session_state.username == "Gabriele Musicò":
+    if st.session_state.username == "Federica Giunta":
         with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
             st.write(f"L'asta è: **{'APERTA 🟢' if not asta_bloccata else 'CHIUSA 🔴'}**")
             
