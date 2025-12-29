@@ -164,6 +164,11 @@ else:
     # --- INTERFACCIA UTENTE ---
     st.title(f"🎁 Benvuto al Mercantrimonio, {st.session_state.username}!")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
+
+    # PULSANTE AGGIORNA (Sempre visibile per tutti)
+    if st.button("🔄 AGGIORNA OFFERTE", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
     
     if asta_bloccata:
         st.error("🚫 L'asta è stata chiusa dall'amministratore.")
