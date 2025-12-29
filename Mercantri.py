@@ -156,7 +156,7 @@ else:
                 if row['Img']:
                     st.image(row['Img'], use_container_width=True)
                 else:
-                    st.write("🖼️")""" #SCOMMENTO SE VOGLIO ANCHE LE IMMAGINI!
+                    st.write("🖼️") #SCOMMENTO SE VOGLIO ANCHE LE IMMAGINI!
             
             with col_txt:
                 st.write(f"### {row['Carta']}")
