@@ -92,16 +92,28 @@ else:
                 st.rerun()
 
     # --- LOGICA REPORT FINALE (Greedy/Cascata) ---
+    Hai ragione, perdonami! Nella foga di ottimizzare le chiamate API ho potato un po' troppo. Quella parte è fondamentale per te per capire se devi fare un ultimo appello al microfono per i tavoli rimasti a bocca asciutta.
+
+Ecco il blocco del Report Finale completo di logica greedy, calcolo degli esclusi e visualizzazione chiara, pronto per essere incollato.
+
+Python
+
+    # --- LOGICA REPORT FINALE (Greedy/Cascata con Esclusi) ---
     if st.session_state.get('show_report', False):
         st.header("🏆 Risultati Ufficiali")
-        df_fresche = load_offerte(force=True)
         
-        # Merge con le carte per sapere il premio
+        # Carichiamo i dati freschi ignorando la cache per la volata finale
+        with st.spinner("Calcolo assegnazioni definitive..."):
+            df_fresche = load_offerte(force=True)
+        
+        # Merge con le carte per sapere il valore del premio
         df_lavoro = df_fresche.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
-        # Ordine: Offerta più alta, poi Premio più alto
+        
+        # Ordiniamo: prima chi ha offerto di più, poi per importanza del premio
         df_lavoro = df_lavoro.sort_values(by=['Offerta', 'Premio'], ascending=False)
         
         assegnazioni, c_presse, t_presi = [], set(), set()
+        
         for _, r in df_lavoro.iterrows():
             if r['Carta'] not in c_presse and r['Tavolo'] not in t_presi:
                 assegnazioni.append({
@@ -115,10 +127,41 @@ else:
                 t_presi.add(r['Tavolo'])
         
         df_f = pd.DataFrame(assegnazioni)
-        if not df_f.empty:
-            st.dataframe(df_f, use_container_width=True)
-            st.metric("Totale Raccolto", f"{df_f['Offerta'].sum()} €")
+
+        # --- CALCOLO ESCLUSI (Tavoli e Carte rimasti fuori) ---
+        tutti_i_tavoli = set(df_tavoli["Nome Tavolo"].unique())
+        tutte_le_carte = set(df_carte["Nome Carta"].unique())
         
+        tavoli_esclusi = tutti_i_tavoli - t_presi
+        carte_escluse = tutte_le_carte - c_presse
+
+        # Visualizzazione avvisi per l'admin
+        col_t, col_c = st.columns(2)
+        with col_t:
+            if tavoli_esclusi:
+                st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
+            else:
+                st.success("🎉 Tutti i tavoli hanno vinto qualcosa!")
+        
+        with col_c:
+            if carte_escluse:
+                st.warning(f"📦 **Carte non assegnate ({len(carte_escluse)}):**\n" + ", ".join(carte_escluse))
+            else:
+                st.success("🃏 Tutte le carte sono state vendute!")
+
+        # --- TABELLA RISULTATI ---
+        if not df_f.empty:
+            # Ordiniamo il report finale per Premio (dal più alto al più basso) per la lettura al microfono
+            df_f = df_f.sort_values(by="Premio", ascending=False)
+            st.table(df_f.style.format({"Offerta": "{} €", "Premio": "{} €"}))
+            
+            st.metric("💰 Totale Raccolto", f"{df_f['Offerta'].sum()} €")
+        else:
+            st.info("Nessuna offerta registrata finora.")
+        
+        if st.button("Aggiorna Calcoli"):
+            st.rerun()
+
         if st.button("Chiudi Report"):
             st.session_state.show_report = False
             st.rerun()
