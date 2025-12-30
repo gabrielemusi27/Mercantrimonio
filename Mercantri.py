@@ -29,7 +29,7 @@ sh = gc.open_by_key(SPREADSHEET_ID)
 
 # --- FUNZIONI DI SCRITTURA E LETTURA ---
 
-@st.cache_data(ttl=45)
+@st.cache_data(ttl=60)
 def load_offerte(force=False):
     """Carica le offerte. Se force=True, ignora la cache."""
     ws = sh.worksheet("Offerte")
