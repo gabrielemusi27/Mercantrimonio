@@ -9,7 +9,7 @@ from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
 # --- AUTOREFRESH (Ogni 10 secondi) ---
-st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=100000, limit=None, key="mercantrimonio_refresh")
 
 # --- STATO GLOBALE CONDIVISO (Sincronizza tutti gli utenti senza API) ---
 @st.cache_resource
