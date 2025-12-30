@@ -3,7 +3,7 @@ import pandas as pd
 import gspread
 from google.oauth2.service_account import Credentials
 import time
-from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
+from streamlit_autorefresh import st_autorefresh 
 
 # 1. Configurazione Pagina
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
