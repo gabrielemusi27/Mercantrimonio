@@ -10,7 +10,7 @@ st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
 # --- AUTOREFRESH (Ogni 5 secondi) ---
 # Controlla lo stato e le offerte automaticamente senza che l'utente clicchi nulla
-st_autorefresh(interval=5000, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
 
 # --- STATO GLOBALE CONDIVISO (Sincronizza tutti gli utenti) ---
 @st.cache_resource
@@ -29,7 +29,7 @@ sh = gc.open_by_key(SPREADSHEET_ID)
 
 # --- FUNZIONI DI SCRITTURA E LETTURA ---
 
-@st.cache_data(ttl=30)
+@st.cache_data(ttl=45)
 def load_offerte(force=False):
     """Carica le offerte. Se force=True, ignora la cache."""
     ws = sh.worksheet("Offerte")
