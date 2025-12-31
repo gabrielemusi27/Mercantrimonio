@@ -206,83 +206,83 @@ else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
 
-    # -----------------------------------------------------
-    # CARTE (FRAGMENT – NO SCROLL JUMP)
-    # -----------------------------------------------------
-    @st.fragment(run_every=5)
-    def render_carte():
-    df_db = get_offerte_snapshot()
-
-    for i, row in df_carte.iterrows():
-        nc = row["Nome Carta"]
-
-        prezzo_mostrato = 0
-        tavolo_mostrato = "Nessuno"
-
-        off_db = df_db[df_db["Carta"] == nc]
-        if not off_db.empty:
-            m = off_db.sort_values(by="Offerta", ascending=False).iloc[0]
-            prezzo_mostrato = m["Offerta"]
-            tavolo_mostrato = m["Tavolo"]
-
-        if nc in st.session_state.offerte_locali:
-            local = st.session_state.offerte_locali[nc]
-            if local['Offerta'] > prezzo_mostrato:
-                prezzo_mostrato = local['Offerta']
-                tavolo_mostrato = local['Tavolo']
-
-        with st.container(border=True):
-            col_img, col_txt, col_btn = st.columns([1, 2, 1])
-
-            with col_img:
-                if row['Immagine']:
-                    st.image(row['Immagine'], use_container_width=True)
-                else:
-                    st.write("🖼️")
-
-            with col_txt:
-                st.write(f"### {nc}")
-                st.write(f"💰 Prezzo attuale: **{prezzo_mostrato} €**")
-                st.caption(f"In testa: {tavolo_mostrato}")
-
-            with col_btn:
-                chiave = f"btn_{nc}_{i}"
-
-                if asta_bloccata:
-                    st.button(
-                        "🔒 Chiusa",
-                        key=chiave,
-                        disabled=True,
-                        use_container_width=True
-                    )
-                else:
-                    with st.expander("🚀 Punta", expanded=False):
-                        st.write(f"Offerta per {nc}")
-                        nuova = st.number_input(
-                            "Importo (€)",
-                            min_value=int(prezzo_mostrato) + 1,
-                            step=1,
-                            key=f"in_{chiave}"
-                        )
-
-                        if st.button(
-                            "Conferma",
-                            key=f"go_{chiave}",
+        # -----------------------------------------------------
+        # CARTE (FRAGMENT – NO SCROLL JUMP)
+        # -----------------------------------------------------
+        @st.fragment(run_every=5)
+        def render_carte():
+        df_db = get_offerte_snapshot()
+    
+        for i, row in df_carte.iterrows():
+            nc = row["Nome Carta"]
+    
+            prezzo_mostrato = 0
+            tavolo_mostrato = "Nessuno"
+    
+            off_db = df_db[df_db["Carta"] == nc]
+            if not off_db.empty:
+                m = off_db.sort_values(by="Offerta", ascending=False).iloc[0]
+                prezzo_mostrato = m["Offerta"]
+                tavolo_mostrato = m["Tavolo"]
+    
+            if nc in st.session_state.offerte_locali:
+                local = st.session_state.offerte_locali[nc]
+                if local['Offerta'] > prezzo_mostrato:
+                    prezzo_mostrato = local['Offerta']
+                    tavolo_mostrato = local['Tavolo']
+    
+            with st.container(border=True):
+                col_img, col_txt, col_btn = st.columns([1, 2, 1])
+    
+                with col_img:
+                    if row['Immagine']:
+                        st.image(row['Immagine'], use_container_width=True)
+                    else:
+                        st.write("🖼️")
+    
+                with col_txt:
+                    st.write(f"### {nc}")
+                    st.write(f"💰 Prezzo attuale: **{prezzo_mostrato} €**")
+                    st.caption(f"In testa: {tavolo_mostrato}")
+    
+                with col_btn:
+                    chiave = f"btn_{nc}_{i}"
+    
+                    if asta_bloccata:
+                        st.button(
+                            "🔒 Chiusa",
+                            key=chiave,
+                            disabled=True,
                             use_container_width=True
-                        ):
-                            append_row("Offerte", {
-                                "Tavolo": st.session_state.tavolo,
-                                "Carta": nc,
-                                "Offerta": nuova,
-                                "Nome Utente": st.session_state.username
-                            })
-
-                            st.session_state.offerte_locali[nc] = {
-                                "Offerta": nuova,
-                                "Tavolo": st.session_state.tavolo
-                            }
-
-                            st.success("Offerta inviata!")
+                        )
+                    else:
+                        with st.expander("🚀 Punta", expanded=False):
+                            st.write(f"Offerta per {nc}")
+                            nuova = st.number_input(
+                                "Importo (€)",
+                                min_value=int(prezzo_mostrato) + 1,
+                                step=1,
+                                key=f"in_{chiave}"
+                            )
+    
+                            if st.button(
+                                "Conferma",
+                                key=f"go_{chiave}",
+                                use_container_width=True
+                            ):
+                                append_row("Offerte", {
+                                    "Tavolo": st.session_state.tavolo,
+                                    "Carta": nc,
+                                    "Offerta": nuova,
+                                    "Nome Utente": st.session_state.username
+                                })
+    
+                                st.session_state.offerte_locali[nc] = {
+                                    "Offerta": nuova,
+                                    "Tavolo": st.session_state.tavolo
+                                }
+    
+                                st.success("Offerta inviata!")
                             
     if st.sidebar.button("Log out"):
         st.session_state.user_logged = False
