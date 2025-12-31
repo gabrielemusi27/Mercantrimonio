@@ -1,40 +1,20 @@
-import streamlit as st
 import pandas as pd
 import gspread
-from google.oauth2.service_account import Credentials
+import streamlit as st
 import time
 import os
+from google.oauth2.service_account import Credentials
 
 # =========================================================
-# CONFIG
+# CONFIGURAZIONE
 # =========================================================
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
-# =========================================================
-# CONFIGURAZIONE PAGINA
-# =========================================================
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
-# FIX SCROLL DEFINITIVO: Blocchiamo le altezze e lo scroll del browser
-st.markdown("""
-    <style>
-    /* Blocca l'altezza minima di ogni riga per evitare l'effetto fisarmonica */
-    div[data-testid="stVerticalBlockBorderWrapper"] {
-        min-height: 250px !important;
-        max-height: 250px !important;
-        overflow: hidden;
-    }
-    /* Forza l'altezza delle immagini per non farle "caricare" dopo */
-    div[data-testid="stImage"] img {
-        height: 150px !important;
-        object-fit: contain;
-    }
-    /* Disattiva lo scroll automatico che Streamlit prova a forzare */
-    html {
-        scroll-behavior: auto !important;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+# --- AUTOREFRESH (Opzionale - commentato come nell'originale) ---
+# from streamlit_autorefresh import st_autorefresh
+# st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -43,6 +23,7 @@ scope = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive"
 ]
+
 creds = Credentials.from_service_account_info(
     st.secrets["connections"]["gsheets"]["service_account"],
     scopes=scope
@@ -63,7 +44,6 @@ def forza_scaricamento_offerte():
     df.to_parquet(SNAPSHOT_FILE, index=False)
     return df
 
-
 @st.cache_data(ttl=5)
 def get_offerte_snapshot():
     """TUTTI – legge SOLO da file locale, ZERO API"""
@@ -73,9 +53,8 @@ def get_offerte_snapshot():
         )
     return pd.read_parquet(SNAPSHOT_FILE)
 
-
 def append_row(name, row_dict):
-    """WRITE API – ok"""
+    """WRITE API – aggiunge una riga al foglio specificato"""
     ws = sh.worksheet(name)
     ws.append_row(list(row_dict.values()))
 
@@ -104,9 +83,11 @@ if 'user_logged' not in st.session_state:
 
 if not st.session_state.user_logged:
     st.title("🎫 Benvenuti al Mercantrimonio!")
+    
     with st.form("login_form"):
         nome = st.text_input("Inserisci il tuo Nome")
         tavolo = st.selectbox("Seleziona il tuo Tavolo", df_tavoli["Nome Tavolo"].unique())
+        
         if st.form_submit_button("Entra nell'Asta"):
             if nome:
                 st.session_state.user_logged = True
@@ -117,13 +98,9 @@ if not st.session_state.user_logged:
                 st.error("Inserisci il tuo nome per partecipare.")
 
 # =========================================================
-# APP
+# APP PRINCIPALE
 # =========================================================
 else:
-    # Asta aperta di default
-    if "asta_aperta" not in st.session_state:
-        st.session_state.asta_aperta = True
-
     asta_bloccata = st.session_state.get("asta_aperta", True) is False
 
     # -----------------------------------------------------
@@ -154,7 +131,7 @@ else:
             if st.button("📊 GENERA REPORT FINALE"):
                 st.session_state.show_report = True
 
-            if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!"):
+            if st.button("🐷 Reset dati (Maialino)"):
                 del st.session_state.df_tavoli
                 del st.session_state.df_carte
                 st.rerun()
@@ -164,45 +141,61 @@ else:
     # -----------------------------------------------------
     if st.session_state.get('show_report', False):
         st.header("🏆 Risultati Ufficiali")
+
         with st.spinner("Calcolo assegnazioni definitive..."):
             df_fresche = forza_scaricamento_offerte()
-        df_lavoro = df_fresche.merge(df_carte[['Nome Carta', 'Premio']], left_on='Carta', right_on='Nome Carta')
+
+        df_lavoro = df_fresche.merge(
+            df_carte[['Nome Carta', 'Premio']],
+            left_on='Carta',
+            right_on='Nome Carta'
+        )
+
         df_lavoro = df_lavoro.sort_values(by=['Offerta', 'Premio'], ascending=False)
+
         assegnazioni, c_presse, t_presi = [], set(), set()
+
         for _, r in df_lavoro.iterrows():
             if r['Carta'] not in c_presse and r['Tavolo'] not in t_presi:
                 assegnazioni.append({
-                    "Carta": r['Carta'], "Tavolo": r['Tavolo'], "Offerta": r['Offerta'],
-                    "Premio": r['Premio'], "Vincitore": r['Nome Utente']
+                    "Carta": r['Carta'],
+                    "Tavolo": r['Tavolo'],
+                    "Offerta": r['Offerta'],
+                    "Premio": r['Premio'],
+                    "Vincitore": r['Nome Utente']
                 })
                 c_presse.add(r['Carta'])
                 t_presi.add(r['Tavolo'])
+
         df_f = pd.DataFrame(assegnazioni)
+
         tutti_i_tavoli = set(df_tavoli["Nome Tavolo"].unique())
         tavoli_esclusi = tutti_i_tavoli - t_presi
+
         if tavoli_esclusi:
-            st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
+            st.error(
+                f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n"
+                + ", ".join(tavoli_esclusi)
+            )
         else:
             st.success("🎉 Tutti i tavoli hanno vinto qualcosa!")
+
         if not df_f.empty:
             df_f = df_f.sort_values(by="Premio", ascending=False)
             st.table(df_f.style.format({"Offerta": "{} €", "Premio": "{}"}))
             st.metric("💰 Totale Raccolto", f"{df_f['Offerta'].sum()} €")
+
         if st.button("Chiudi Report"):
             st.session_state.show_report = False
             st.rerun()
+
         st.divider()
 
     # -----------------------------------------------------
     # INTERFACCIA UTENTE
     # -----------------------------------------------------
-    st.title(f"🎁 Benvuto al Mercantrimonio, {st.session_state.username}!")
+    st.title(f"🎁 Benvenuto al Mercantrimonio, {st.session_state.username}!")
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
-
-    if asta_bloccata:
-        st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
-    else:
-        st.success("✅ Asta in corso! Fai la tua offerta.")
 
     # -----------------------------------------------------
     # CARTE (FRAGMENT – NO SCROLL JUMP)
@@ -213,9 +206,6 @@ else:
         
         for i, row in df_carte.iterrows():
             nc = row["Nome Carta"]
-            # CHIAVE UNICA BASATA SUL NOME: Fondamentale per non far saltare lo scroll
-            unique_key = nc.replace(" ", "_")
-        
             prezzo_mostrato = 0
             tavolo_mostrato = "Nessuno"
         
@@ -246,8 +236,10 @@ else:
                     st.caption(f"In testa: {tavolo_mostrato}")
         
                 with col_btn:
+                    chiave = f"{nc}_{i}"
+                    
                     if asta_bloccata:
-                        st.button("🔒 Chiusa", disabled=True, use_container_width=True, key=f"lock_{unique_key}")
+                        st.button("🔒 Chiusa", disabled=True, use_container_width=True, key=f"btn_lock_{chiave}")
                     else:
                         with st.popover("🚀 Punta"):
                             st.write(f"Offerta per {nc}")
@@ -255,22 +247,29 @@ else:
                                 "Importo (€)",
                                 min_value=int(prezzo_mostrato) + 1,
                                 step=1,
-                                key=f"in_{unique_key}" # Chiave stabile
+                                key=f"in_{chiave}"
                             )
                         
-                            if st.button("Conferma", key=f"go_{unique_key}", use_container_width=True):
+                            if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
                                 append_row("Offerte", {
                                     "Tavolo": st.session_state.tavolo,
                                     "Carta": nc,
                                     "Offerta": nuova,
                                     "Nome Utente": st.session_state.username
                                 })
+                        
                                 st.session_state.offerte_locali[nc] = {
                                     "Offerta": nuova,
                                     "Tavolo": st.session_state.tavolo
                                 }
                                 st.success("Offerta inviata!")
-        
+
+    if asta_bloccata:
+        st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
+    else:
+        st.success("✅ Asta in corso! Fai la tua offerta.")
+
+    # Esecuzione del frammento delle carte
     render_carte()
                             
     if st.sidebar.button("Log out"):
