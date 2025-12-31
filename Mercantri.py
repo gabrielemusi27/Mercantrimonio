@@ -1,4 +1,4 @@
-import pandas as pd
+import pd
 import gspread
 import streamlit as st
 import time
@@ -11,10 +11,6 @@ from google.oauth2.service_account import Credentials
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
-
-# --- AUTOREFRESH (Opzionale - commentato come nell'originale) ---
-# from streamlit_autorefresh import st_autorefresh
-# st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -209,12 +205,14 @@ else:
             prezzo_mostrato = 0
             tavolo_mostrato = "Nessuno"
         
+            # 1. Controlla il DB (Snapshot Parquet)
             off_db = df_db[df_db["Carta"] == nc]
             if not off_db.empty:
                 m = off_db.sort_values(by="Offerta", ascending=False).iloc[0]
                 prezzo_mostrato = m["Offerta"]
                 tavolo_mostrato = m["Tavolo"]
         
+            # 2. Sovrascrivi con l'offerta locale se superiore (Aggiornamento istantaneo)
             if nc in st.session_state.offerte_locali:
                 local = st.session_state.offerte_locali[nc]
                 if local["Offerta"] > prezzo_mostrato:
@@ -251,6 +249,7 @@ else:
                             )
                         
                             if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
+                                # Invio dati a Google Sheets
                                 append_row("Offerte", {
                                     "Tavolo": st.session_state.tavolo,
                                     "Carta": nc,
@@ -258,11 +257,15 @@ else:
                                     "Nome Utente": st.session_state.username
                                 })
                         
+                                # Aggiornamento locale istantaneo
                                 st.session_state.offerte_locali[nc] = {
                                     "Offerta": nuova,
                                     "Tavolo": st.session_state.tavolo
                                 }
+                                
                                 st.success("Offerta inviata!")
+                                time.sleep(0.5)
+                                st.rerun() # Forza il fragment a ricaricarsi con i nuovi dati locali
 
     if asta_bloccata:
         st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
