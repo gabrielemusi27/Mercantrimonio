@@ -204,7 +204,7 @@ else:
     # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
     @st.fragment(run_every=5)
-    def render_carte():
+    def render_prezzi():
         return get_offerte_snapshot()
     
     if asta_bloccata:
@@ -215,6 +215,7 @@ else:
     # -----------------------------------------------------
     # CARTE 
     # -----------------------------------------------------
+    df_db = render_prezzi()
     
     for i, row in df_carte.iterrows():
         nc = row["Nome Carta"]
@@ -276,7 +277,7 @@ else:
                             st.success("Offerta inviata!")
     
     
-    render_carte()
+   
         
                             
     if st.sidebar.button("Log out"):
