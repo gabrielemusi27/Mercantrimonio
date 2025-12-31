@@ -240,6 +240,8 @@ else:
                     st.caption(f"In testa: {tavolo_mostrato}")
         
                 with col_btn:
+                    chiave = f"{nc}_{i}"
+                    
                     if asta_bloccata:
                         st.button("🔒 Chiusa", disabled=True, use_container_width=True)
                     else:
