@@ -131,7 +131,7 @@ else:
             if st.button("📊 GENERA REPORT FINALE"):
                 st.session_state.show_report = True
 
-            if st.button("🐷 Reset dati (Maialino)"):
+            if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!"):
                 del st.session_state.df_tavoli
                 del st.session_state.df_carte
                 st.rerun()
