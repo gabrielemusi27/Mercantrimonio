@@ -4,28 +4,20 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 import os
+from streamlit_autorefresh import st_autorefresh  # Aggiungere a requirements.txt
 
 # =========================================================
 # CONFIG
 # =========================================================
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
-AUTOREFRESH_SECONDS = 20  # ogni quanti secondi si aggiorna la pagina
 
 # =========================================================
 # CONFIGURAZIONE PAGINA
 # =========================================================
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
-# =========================================================
-# AUTOREFRESH NATIVO (STREAMLIT)
-# =========================================================
-if "last_autorefresh" not in st.session_state:
-    st.session_state.last_autorefresh = time.time()
-
-now = time.time()
-if now - st.session_state.last_autorefresh > AUTOREFRESH_SECONDS:
-    st.session_state.last_autorefresh = now
-    st.rerun()
+# --- AUTOREFRESH (Ogni 10 secondi) ---
+st_autorefresh(interval=100000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -51,13 +43,14 @@ def forza_scaricamento_offerte():
     """SOLO ADMIN – legge da Google Sheets e salva snapshot locale"""
     ws = sh.worksheet("Offerte")
     df = pd.DataFrame(ws.get_all_records())
+
     df.to_parquet(SNAPSHOT_FILE, index=False)
     return df
 
 
 @st.cache_data(ttl=5)
 def get_offerte_snapshot():
-    """TUTTI – legge SOLO da file locale"""
+    """TUTTI – legge SOLO da file locale, ZERO API"""
     if not os.path.exists(SNAPSHOT_FILE):
         return pd.DataFrame(
             columns=["Tavolo", "Carta", "Offerta", "Nome Utente"]
@@ -66,6 +59,7 @@ def get_offerte_snapshot():
 
 
 def append_row(name, row_dict):
+    """WRITE API – ok"""
     ws = sh.worksheet(name)
     ws.append_row(list(row_dict.values()))
 
@@ -146,7 +140,7 @@ else:
                 st.rerun()
 
     # -----------------------------------------------------
-    # REPORT FINALE
+    # REPORT FINALE (ADMIN)
     # -----------------------------------------------------
     if st.session_state.get('show_report', False):
         st.header("🏆 Risultati Ufficiali")
@@ -278,6 +272,7 @@ else:
 
                             st.success("Offerta inviata!")
                             time.sleep(0.5)
+                            st.rerun()
 
     if st.sidebar.button("Log out"):
         st.session_state.user_logged = False
