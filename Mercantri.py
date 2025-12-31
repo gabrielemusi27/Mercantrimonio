@@ -15,18 +15,18 @@ SNAPSHOT_FILE = "offerte_snapshot.parquet"
 # =========================================================
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
-# CSS ANTI-JUMP: Blocca l'altezza dei container e stabilizza lo scroll
+# CSS ANTI-JUMP: Stabilizza l'altezza e blocca lo scroll jitter
 st.markdown("""
     <style>
     /* Mantiene i container stabili durante il refresh */
     div[data-testid="stVerticalBlockBorderWrapper"] {
         min-height: 220px;
     }
-    /* Disabilita animazioni di scroll che causano jitter nei refresh automatici */
+    /* Impedisce lo scroll "saltellante" durante i refresh automatici */
     html {
         scroll-behavior: auto !important;
     }
-    /* Estetica dei popover per mobile */
+    /* Adatta i popover ai dispositivi mobili */
     div[data-testid="stPopoverBody"] {
         width: 100% !important;
     }
@@ -70,7 +70,7 @@ def get_offerte_snapshot():
     return pd.read_parquet(SNAPSHOT_FILE)
 
 def append_row(name, row_dict):
-    """WRITE API – ok"""
+    """WRITE API – scrive direttamente su Google Sheets"""
     ws = sh.worksheet(name)
     ws.append_row(list(row_dict.values()))
 
@@ -115,9 +115,9 @@ if not st.session_state.user_logged:
 # APP
 # =========================================================
 else:
-    # Gestione stato asta (con fallback se non esiste ancora in session_state)
+    # --- STATO ASTA (PARTE APERTA) ---
     if "asta_aperta" not in st.session_state:
-        st.session_state.asta_aperta = False # Parte chiusa come richiesto
+        st.session_state.asta_aperta = True # MODIFICA: Inizializzata su True
     
     asta_bloccata = not st.session_state.asta_aperta
 
@@ -210,13 +210,11 @@ else:
     # -----------------------------------------------------
     @st.fragment(run_every=10)
     def render_carte():
-        # Ancoraggio invisibile per aiutare Streamlit a mantenere la posizione
-        st.empty()
+        st.empty() # Ancoraggio per mantenere la posizione dello scroll
         df_db = get_offerte_snapshot()
         
         for i, row in df_carte.iterrows():
             nc = row["Nome Carta"]
-            # Creiamo una chiave sicura senza spazi per i widget
             safe_key = nc.replace(" ", "_")
         
             prezzo_mostrato = 0
@@ -275,7 +273,6 @@ else:
                                 }
                                 st.success("Offerta inviata!")
 
-    # Esecuzione del fragment
     render_carte()
                             
     if st.sidebar.button("Log out"):
