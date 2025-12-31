@@ -204,20 +204,10 @@ else:
     # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
     @st.fragment(run_every=5)
-    def render_prezzi():
-        return get_offerte_snapshot()
-    
-    if asta_bloccata:
-        st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
-    else:
-        st.success("✅ Asta in corso! Fai la tua offerta.")
-
-    # -----------------------------------------------------
-    # CARTE 
-    # -----------------------------------------------------
-    df_db = render_prezzi()
-    
-    for i, row in df_carte.iterrows():
+    def render_carte():
+        df_db = get_offerte_snapshot()
+        
+        for i, row in df_carte.iterrows():
         nc = row["Nome Carta"]
     
         prezzo_mostrato = 0
@@ -253,32 +243,37 @@ else:
                 if asta_bloccata:
                     st.button("🔒 Chiusa", disabled=True, use_container_width=True)
                 else:
-                    with st.expander("🚀 Punta", expanded=False):
+                    with st.popover("🚀 Punta"):
+                        st.write(f"Offerta per {nc}")
                         nuova = st.number_input(
                             "Importo (€)",
                             min_value=int(prezzo_mostrato) + 1,
                             step=1,
-                            key=f"in_{nc}_{i}"
+                            key=f"in_{chiave}"
                         )
-    
-                        if st.button("Conferma", key=f"go_{nc}_{i}", use_container_width=True):
+                    
+                        if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
                             append_row("Offerte", {
                                 "Tavolo": st.session_state.tavolo,
                                 "Carta": nc,
                                 "Offerta": nuova,
                                 "Nome Utente": st.session_state.username
                             })
-    
+                    
                             st.session_state.offerte_locali[nc] = {
                                 "Offerta": nuova,
                                 "Tavolo": st.session_state.tavolo
                             }
-    
+                    
                             st.success("Offerta inviata!")
-    
-    
-   
         
+    
+    if asta_bloccata:
+        st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
+    else:
+        st.success("✅ Asta in corso! Fai la tua offerta.")
+
+    render_carte()
                             
     if st.sidebar.button("Log out"):
         st.session_state.user_logged = False
