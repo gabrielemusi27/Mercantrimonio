@@ -228,7 +228,7 @@ else:
                     prezzo_mostrato = local["Offerta"]
                     tavolo_mostrato = local["Tavolo"]
         
-            with st.container():
+            with st.container(border = True):
                 col_img, col_txt, col_btn = st.columns([1, 2, 1])
         
                 with col_img:
