@@ -272,7 +272,7 @@ else:
 
                             st.success("Offerta inviata!")
                             time.sleep(0.5)
-                            st.rerun()
+                            #st.rerun()
 
     if st.sidebar.button("Log out"):
         st.session_state.user_logged = False
