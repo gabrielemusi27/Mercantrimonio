@@ -5,6 +5,8 @@ from google.oauth2.service_account import Credentials
 import time
 import os
 
+
+
 # from streamlit_autorefresh import st_autorefresh  # Aggiungere a requirements.txt
 
 # =========================================================
@@ -231,7 +233,7 @@ else:
         
                 with col_img:
                     if row["Immagine"]:
-                        st.image(row["Immagine"], width=200)
+                        st.image(row["Immagine"], width=200, height = 260)
                     else:
                         st.write("🖼️")
         
