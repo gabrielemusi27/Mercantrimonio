@@ -4,6 +4,8 @@ import streamlit as st
 import time
 import os
 from google.oauth2.service_account import Credentials
+from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
+
 
 # =========================================================
 # CONFIGURAZIONE
@@ -11,6 +13,7 @@ from google.oauth2.service_account import Credentials
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
+st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -196,7 +199,7 @@ else:
     # -----------------------------------------------------
     # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
-    @st.fragment(run_every=20)
+    @st.fragment(run_every=200)
     def render_carte():
         df_db = get_offerte_snapshot()
         
