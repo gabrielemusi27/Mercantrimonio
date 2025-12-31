@@ -283,7 +283,7 @@ else:
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
-    st.render_carte()
+    render_carte()
         
                             
     if st.sidebar.button("Log out"):
