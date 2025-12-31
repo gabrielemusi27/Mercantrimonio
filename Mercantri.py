@@ -4,7 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 import os
-from streamlit_autorefresh import st_autorefresh  # Aggiungere a requirements.txt
+# from streamlit_autorefresh import st_autorefresh  # Aggiungere a requirements.txt
 
 # =========================================================
 # CONFIG
@@ -17,7 +17,7 @@ SNAPSHOT_FILE = "offerte_snapshot.parquet"
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
 # --- AUTOREFRESH (Ogni 10 secondi) ---
-st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
+# st_autorefresh(interval=10000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -205,9 +205,12 @@ else:
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
+
     # -----------------------------------------------------
-    # CARTE
+    # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
+    @st.fragment(run_every=5)
+    def render_carte():
     df_db = get_offerte_snapshot()
 
     for i, row in df_carte.iterrows():
@@ -246,7 +249,12 @@ else:
                 chiave = f"btn_{nc}_{i}"
 
                 if asta_bloccata:
-                    st.button("🔒 Chiusa", key=chiave, disabled=True, use_container_width=True)
+                    st.button(
+                        "🔒 Chiusa",
+                        key=chiave,
+                        disabled=True,
+                        use_container_width=True
+                    )
                 else:
                     with st.expander("🚀 Punta", expanded=False):
                         st.write(f"Offerta per {nc}")
@@ -257,7 +265,11 @@ else:
                             key=f"in_{chiave}"
                         )
 
-                        if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
+                        if st.button(
+                            "Conferma",
+                            key=f"go_{chiave}",
+                            use_container_width=True
+                        ):
                             append_row("Offerte", {
                                 "Tavolo": st.session_state.tavolo,
                                 "Carta": nc,
@@ -271,9 +283,7 @@ else:
                             }
 
                             st.success("Offerta inviata!")
-                            time.sleep(0.5)
-                            st.rerun()
-
+                            
     if st.sidebar.button("Log out"):
         st.session_state.user_logged = False
         st.rerun()
