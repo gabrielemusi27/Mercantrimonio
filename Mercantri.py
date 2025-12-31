@@ -17,7 +17,7 @@ SNAPSHOT_FILE = "offerte_snapshot.parquet"
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
 # --- AUTOREFRESH (Ogni 10 secondi) ---
-st_autorefresh(interval=50000, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=200000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
