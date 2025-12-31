@@ -233,7 +233,7 @@ else:
         
                 with col_img:
                     if row["Immagine"]:
-                        st.image(row["Immagine"], width=200, height = 260)
+                        st.image(row["Immagine"], use_container_width=True)
                     else:
                         st.write("🖼️")
         
