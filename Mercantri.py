@@ -1,4 +1,4 @@
-import pd
+import pandas as pd
 import gspread
 import streamlit as st
 import time
