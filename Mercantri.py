@@ -200,7 +200,7 @@ else:
     # -----------------------------------------------------
     # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
-    @st.fragment(run_every=5)
+    @st.fragment(run_every=20)
     def render_carte():
         df_db = get_offerte_snapshot()
         
