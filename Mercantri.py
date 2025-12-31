@@ -4,24 +4,7 @@ import gspread
 from google.oauth2.service_account import Credentials
 import time
 import os
-import streamlit.components.v1 as components
 
-def preserve_scroll():
-    components.html(
-        """
-        <script>
-        const scrollPos = window.scrollY;
-        window.addEventListener("beforeunload", () => {
-            sessionStorage.setItem("scrollPos", scrollPos);
-        });
-        window.onload = () => {
-            const pos = sessionStorage.getItem("scrollPos");
-            if (pos) window.scrollTo(0, pos);
-        };
-        </script>
-        """,
-        height=0,
-    )
 # from streamlit_autorefresh import st_autorefresh  # Aggiungere a requirements.txt
 
 # =========================================================
@@ -248,7 +231,7 @@ else:
         
                 with col_img:
                     if row["Immagine"]:
-                        st.image(row["Immagine"], use_container_width=True)
+                        st.image(row["Immagine"], use_container_width=200)
                     else:
                         st.write("🖼️")
         
@@ -293,7 +276,6 @@ else:
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
-    preserve_scroll()
     render_carte()
                             
     if st.sidebar.button("Log out"):
