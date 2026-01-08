@@ -209,6 +209,7 @@ else:
     # -----------------------------------------------------
     @st.fragment(run_every=13)
     def render_carte():
+        time.sleep(2)
         # Rileggiamo lo stato dentro il fragment per bloccare/sbloccare i tasti al refresh
         current_asta_bloccata = not get_asta_status()
         df_db = get_offerte_snapshot()
