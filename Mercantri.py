@@ -171,7 +171,7 @@ else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
     # Definizione del Fragment DINAMICO per ogni singola carta
-    @st.fragment(run_every=10)
+    @st.fragment(run_every=7)
     def ui_dinamica_carta(nome_carta, index_carta):
         # 1. Recupero dati aggiornati
         current_asta_bloccata = not get_asta_status()
