@@ -200,6 +200,7 @@ else:
 
     @st.fragment(run_every=7)
     def ui_dinamica_carta(nome_carta, index):
+        asta_aperta = get_asta_status()
         df = get_offerte_live()
         prezzo, tavolo = 0, "Nessuno"
 
