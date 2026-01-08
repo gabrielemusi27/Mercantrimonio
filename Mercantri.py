@@ -209,7 +209,7 @@ else:
 
         # Tabella Risultati
         if not df_finale.empty:
-            st.table(df_finale.style.format({"Offerta": "{} €"}))
+            st.table(df_finale.style.format({"Offerta": "{} €"})).hide(axis="index"))
             st.metric("💰 Totale Raccolto", f"{df_finale['Offerta'].sum()} €")
 
         if st.button("Chiudi Report"):
