@@ -63,16 +63,16 @@ def sync_google_to_parquet():
     ws = sh.worksheet("Offerte")
     df = pd.DataFrame(ws.get_all_records())
     if not df.empty:
-        df = df[SHEET_HEADERS]
+        # Assicuriamoci che le colonne siano quelle corrette
+        df = df[[c for c in SHEET_HEADERS if c in df.columns]]
         df.to_parquet(SNAPSHOT_FILE, index=False)
+    return df
 
 def sync_parquet_to_google():
     ws = sh.worksheet("Offerte")
     df = get_offerte_live()
-
     ws.clear()
     ws.append_row(SHEET_HEADERS)
-
     if not df.empty:
         ws.append_rows(df[SHEET_HEADERS].values.tolist())
 
@@ -126,7 +126,6 @@ else:
     # -----------------------------------------------------
     if st.session_state.username == "Federica Giunta":
         with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
-    
             st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
     
             if st.button("📥 CARICA OFFERTE DA GOOGLE", key="admin_load_google"):
@@ -154,6 +153,9 @@ else:
             st.divider()
     
             if st.button("📊 GENERA REPORT FINALE", key="admin_report"):
+                # Forza il caricamento da Google prima di generare il report
+                with st.spinner("Recupero dati da Google Sheet..."):
+                    st.session_state.df_per_report = sync_google_to_parquet()
                 st.session_state.show_report = True
     
             if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!", key="admin_pig"):
@@ -162,21 +164,50 @@ else:
                 st.rerun()
 
     # -----------------------------------------------------
-    # REPORT FINALE (DAL PARQUET)
+    # REPORT FINALE (ORA CON LOGICA TAVOLI/CARTE MANCANTI)
     # -----------------------------------------------------
     if st.session_state.get("show_report", False):
         st.header("🏆 Risultati Ufficiali")
 
-        df = get_offerte_live().sort_values(by="Offerta", ascending=False)
-        assegnazioni, carte, tavoli = [], set(), set()
+        # Legge i dati appena scaricati da Google
+        df_offerte = st.session_state.get("df_per_report", pd.DataFrame(columns=SHEET_HEADERS))
+        df_offerte = df_offerte.sort_values(by="Offerta", ascending=False)
+        
+        assegnazioni = []
+        carte_assegnate = set()
+        tavoli_vincitori = set()
 
-        for _, r in df.iterrows():
-            if r["Carta"] not in carte and r["Tavolo"] not in tavoli:
+        # Calcolo vincitori (1 premio per tavolo, max offerta per carta)
+        for _, r in df_offerte.iterrows():
+            if r["Carta"] not in carte_assegnate and r["Tavolo"] not in tavoli_vincitori:
                 assegnazioni.append(r)
-                carte.add(r["Carta"])
-                tavoli.add(r["Tavolo"])
+                carte_assegnate.add(r["Carta"])
+                tavoli_vincitori.add(r["Tavolo"])
 
         df_finale = pd.DataFrame(assegnazioni)
+
+        # Logica Mancanze
+        tutti_tavoli = set(df_tavoli["Nome Tavolo"].unique())
+        tutte_carte = set(df_carte["Nome Carta"].unique())
+        
+        tavoli_senza_premio = tutti_tavoli - tavoli_vincitori
+        carte_rimaste = tutte_carte - carte_assegnate
+
+        # Visualizzazione Avvisi Mancanze
+        col_m1, col_m2 = st.columns(2)
+        with col_m1:
+            if tavoli_senza_premio:
+                st.error(f"😟 **Tavoli a mani vuote ({len(tavoli_senza_premio)}):**\n" + ", ".join(tavoli_senza_premio))
+            else:
+                st.success("🎉 Tutti i tavoli hanno vinto!")
+        
+        with col_m2:
+            if carte_rimaste:
+                st.warning(f"🃏 **Carte non assegnate ({len(carte_rimaste)}):**\n" + ", ".join(carte_rimaste))
+            else:
+                st.info("💎 Tutte le carte sono state assegnate!")
+
+        # Tabella Risultati
         if not df_finale.empty:
             st.table(df_finale.style.format({"Offerta": "{} €"}))
             st.metric("💰 Totale Raccolto", f"{df_finale['Offerta'].sum()} €")
@@ -200,7 +231,7 @@ else:
 
     @st.fragment(run_every=7)
     def ui_dinamica_carta(nome_carta, index):
-        asta_aperta = get_asta_status()
+        asta_aperta_local = get_asta_status()
         df = get_offerte_live()
         prezzo, tavolo = 0, "Nessuno"
 
@@ -221,11 +252,11 @@ else:
 
         with col_btn:
             chiave = f"{nome_carta}_{index}"
-            if not asta_aperta:
-                st.button("🔒 Chiusa", disabled=True, use_container_width=True, key = chiave)
+            if not asta_aperta_local:
+                st.button("🔒 Chiusa", disabled=True, use_container_width=True, key = f"lock_{chiave}")
             else:
                 with st.expander("🚀 Punta"):
-                    nuova = st.number_input("Importo (€)", min_value=int(prezzo)+1, step=1, key=chiave)
+                    nuova = st.number_input("Importo (€)", min_value=int(prezzo)+1, step=1, key=f"input_{chiave}")
                     if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
                         append_offerta_locale({
                             "Tavolo": st.session_state.tavolo,
