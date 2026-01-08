@@ -128,12 +128,8 @@ else:
         with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
             st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
     
-            if st.button("📥 CARICA OFFERTE DA GOOGLE", key="admin_load_google"):
-                sync_google_to_parquet()
-                st.success("Offerte inizializzate dal Google Sheet!")
-    
             if st.button(
-                "🔄 AGGIORNA OFFERTE PER TUTTI",
+                "🔄 AGGIORNA EXCEL",
                 key="admin_sync_google",
                 use_container_width=True,
                 type="primary"
@@ -159,9 +155,13 @@ else:
                 st.session_state.show_report = True
     
             if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!", key="admin_pig"):
-                del st.session_state.df_tavoli
-                del st.session_state.df_carte
-                st.rerun()
+                st.success("Grazie, il maiale ti è grato! 🐷")
+
+            st.divider()
+
+            if st.button("📥 CARICA OFFERTE DA EXCEL", key="admin_load_google"):
+                sync_google_to_parquet()
+                st.success("Offerte inizializzate dal Google Sheet!")
 
     # -----------------------------------------------------
     # REPORT FINALE (ORA CON LOGICA TAVOLI/CARTE MANCANTI)
