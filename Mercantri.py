@@ -179,7 +179,7 @@ else:
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
-    @st.fragment(run_every=7)
+    @st.fragment(run_every=10)
     def ui_dinamica_carta(nome_carta, index_carta):
         current_asta_bloccata = not get_asta_status()
         df_db = get_offerte_live()
