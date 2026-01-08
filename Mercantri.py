@@ -145,12 +145,12 @@ else:
             df_fresche = forza_scaricamento_offerte()
 
         df_lavoro = df_fresche.merge(
-            df_carte[['Nome Carta', 'Premio']],
+            df_carte[['Nome Carta']],
             left_on='Carta',
             right_on='Nome Carta'
         )
 
-        df_lavoro = df_lavoro.sort_values(by=['Offerta', 'Premio'], ascending=False)
+        df_lavoro = df_lavoro.sort_values(by=['Offerta'], ascending=False)
 
         assegnazioni, c_presse, t_presi = [], set(), set()
 
@@ -160,7 +160,6 @@ else:
                     "Carta": r['Carta'],
                     "Tavolo": r['Tavolo'],
                     "Offerta": r['Offerta'],
-                    "Premio": r['Premio'],
                     "Vincitore": r['Nome Utente']
                 })
                 c_presse.add(r['Carta'])
@@ -180,8 +179,8 @@ else:
             st.success("🎉 Tutti i tavoli hanno vinto qualcosa!")
 
         if not df_f.empty:
-            df_f = df_f.sort_values(by="Premio", ascending=False)
-            st.table(df_f.style.format({"Offerta": "{} €", "Premio": "{}"}))
+            df_f = df_f.sort_values(by="Offerta", ascending=False)
+            st.table(df_f.style.format({"Offerta": "{} €"}))
             st.metric("💰 Totale Raccolto", f"{df_f['Offerta'].sum()} €")
 
         if st.button("Chiudi Report"):
