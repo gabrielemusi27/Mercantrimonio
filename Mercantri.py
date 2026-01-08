@@ -13,7 +13,7 @@ from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
-st_autorefresh(interval=2500, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=27000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
