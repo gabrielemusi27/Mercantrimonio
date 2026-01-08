@@ -125,34 +125,41 @@ else:
     # PANNELLO ADMIN
     # -----------------------------------------------------
     if st.session_state.username == "Federica Giunta":
-        with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
-            st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
+    with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
 
-            if st.button("📥 CARICA OFFERTE DA GOOGLE"):
-                sync_google_to_parquet()
-                st.success("Offerte inizializzate dal Google Sheet!")
+        st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
 
-            if st.button("🔄 AGGIORNA OFFERTE PER TUTTI", use_container_width=True, type="primary"):
-                sync_parquet_to_google()
-                st.success("Dati sincronizzati su Google Sheet!")
+        if st.button("📥 CARICA OFFERTE DA GOOGLE", key="admin_load_google"):
+            sync_google_to_parquet()
+            st.success("Offerte inizializzate dal Google Sheet!")
 
-            if asta_aperta:
-                if st.button("🔴 CHIUDI ASTA PER TUTTI"):
-                    set_asta_status(False)
-                    st.rerun()
-            else:
-                if st.button("🟢 AVVIA ASTA PER TUTTI"):
-                    set_asta_status(True)
-                    st.rerun()
+        if st.button(
+            "🔄 AGGIORNA OFFERTE PER TUTTI",
+            key="admin_sync_google",
+            use_container_width=True,
+            type="primary"
+        ):
+            sync_parquet_to_google()
+            st.success("Dati sincronizzati su Google Sheet!")
 
-            st.divider()
-            if st.button("📊 GENERA REPORT FINALE"):
-                st.session_state.show_report = True
-
-            if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!"):
-                del st.session_state.df_tavoli
-                del st.session_state.df_carte
+        if asta_aperta:
+            if st.button("🔴 CHIUDI ASTA PER TUTTI", key="admin_close_asta"):
+                set_asta_status(False)
                 st.rerun()
+        else:
+            if st.button("🟢 AVVIA ASTA PER TUTTI", key="admin_open_asta"):
+                set_asta_status(True)
+                st.rerun()
+
+        st.divider()
+
+        if st.button("📊 GENERA REPORT FINALE", key="admin_report"):
+            st.session_state.show_report = True
+
+        if st.button("🐷 Premi per elevare la vita di un povero maialino indifeso!", key="admin_pig"):
+            del st.session_state.df_tavoli
+            del st.session_state.df_carte
+            st.rerun()
 
     # -----------------------------------------------------
     # REPORT FINALE (DAL PARQUET)
