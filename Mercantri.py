@@ -11,6 +11,8 @@ from google.oauth2.service_account import Credentials
 SNAPSHOT_FILE = "offerte_live.parquet"
 STATUS_FILE = "asta_status.parquet"
 
+SHEET_HEADERS = ["Tavolo", "Carta", "Offerta", "Utente"]
+
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
 
 # =========================================================
@@ -31,13 +33,12 @@ SPREADSHEET_ID = "1g_FXSodJoWocTc8Ni12sBSDYviQ7oAQBDipVsLzfw5w"
 sh = gc.open_by_key(SPREADSHEET_ID)
 
 # =========================================================
-# STATO ASTA (PERSISTENTE)
+# STATO ASTA
 # =========================================================
 def get_asta_status():
     if not os.path.exists(STATUS_FILE):
         return True
-    df = pd.read_parquet(STATUS_FILE)
-    return bool(df.loc[0, "aperta"])
+    return bool(pd.read_parquet(STATUS_FILE).loc[0, "aperta"])
 
 def set_asta_status(stato: bool):
     pd.DataFrame([{"aperta": stato}]).to_parquet(STATUS_FILE, index=False)
@@ -47,23 +48,36 @@ def set_asta_status(stato: bool):
 # =========================================================
 def get_offerte_live():
     if not os.path.exists(SNAPSHOT_FILE):
-        return pd.DataFrame(columns=["Tavolo", "Carta", "Offerta", "Nome Utente"])
+        return pd.DataFrame(columns=SHEET_HEADERS)
     return pd.read_parquet(SNAPSHOT_FILE)
 
-def append_offerta_locale(row_dict):
+def append_offerta_locale(row):
     df = get_offerte_live()
-    df = pd.concat([df, pd.DataFrame([row_dict])], ignore_index=True)
+    df = pd.concat([df, pd.DataFrame([row])], ignore_index=True)
     df.to_parquet(SNAPSHOT_FILE, index=False)
 
-def sync_parquet_to_google():
-    df = get_offerte_live()
+# =========================================================
+# SYNC GOOGLE <-> PARQUET
+# =========================================================
+def sync_google_to_parquet():
     ws = sh.worksheet("Offerte")
-    ws.clear()
+    df = pd.DataFrame(ws.get_all_records())
     if not df.empty:
-        ws.append_rows(df.values.tolist())
+        df = df[SHEET_HEADERS]
+        df.to_parquet(SNAPSHOT_FILE, index=False)
+
+def sync_parquet_to_google():
+    ws = sh.worksheet("Offerte")
+    df = get_offerte_live()
+
+    ws.clear()
+    ws.append_row(SHEET_HEADERS)
+
+    if not df.empty:
+        ws.append_rows(df[SHEET_HEADERS].values.tolist())
 
 # =========================================================
-# DATI STATICI (LETTI UNA SOLA VOLTA)
+# DATI STATICI
 # =========================================================
 if "df_tavoli" not in st.session_state or "df_carte" not in st.session_state:
     with st.spinner("Sincronizzazione tavoli e carte..."):
@@ -114,9 +128,13 @@ else:
         with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
             st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
 
+            if st.button("📥 CARICA OFFERTE DA GOOGLE"):
+                sync_google_to_parquet()
+                st.success("Offerte inizializzate dal Google Sheet!")
+
             if st.button("🔄 AGGIORNA OFFERTE PER TUTTI", use_container_width=True, type="primary"):
                 sync_parquet_to_google()
-                st.success("Dati sincronizzati!")
+                st.success("Dati sincronizzati su Google Sheet!")
 
             if asta_aperta:
                 if st.button("🔴 CHIUDI ASTA PER TUTTI"):
@@ -141,21 +159,15 @@ else:
     # -----------------------------------------------------
     if st.session_state.get("show_report", False):
         st.header("🏆 Risultati Ufficiali")
-        df_fresche = get_offerte_live()
 
-        df_lavoro = df_fresche.sort_values(by="Offerta", ascending=False)
+        df = get_offerte_live().sort_values(by="Offerta", ascending=False)
+        assegnazioni, carte, tavoli = [], set(), set()
 
-        assegnazioni, carte_prese, tavoli_presi = [], set(), set()
-        for _, r in df_lavoro.iterrows():
-            if r["Carta"] not in carte_prese and r["Tavolo"] not in tavoli_presi:
-                assegnazioni.append({
-                    "Carta": r["Carta"],
-                    "Tavolo": r["Tavolo"],
-                    "Offerta": r["Offerta"],
-                    "Vincitore": r["Nome Utente"]
-                })
-                carte_prese.add(r["Carta"])
-                tavoli_presi.add(r["Tavolo"])
+        for _, r in df.iterrows():
+            if r["Carta"] not in carte and r["Tavolo"] not in tavoli:
+                assegnazioni.append(r)
+                carte.add(r["Carta"])
+                tavoli.add(r["Tavolo"])
 
         df_finale = pd.DataFrame(assegnazioni)
         if not df_finale.empty:
@@ -179,49 +191,39 @@ else:
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
-    @st.fragment(run_every=10)
-    def ui_dinamica_carta(nome_carta, index_carta):
-        current_asta_bloccata = not get_asta_status()
-        df_db = get_offerte_live()
+    @st.fragment(run_every=7)
+    def ui_dinamica_carta(nome_carta, index):
+        df = get_offerte_live()
+        prezzo, tavolo = 0, "Nessuno"
 
-        prezzo_mostrato = 0
-        tavolo_mostrato = "Nessuno"
-
-        off_db = df_db[df_db["Carta"] == nome_carta]
-        if not off_db.empty:
-            top = off_db.sort_values(by="Offerta", ascending=False).iloc[0]
-            prezzo_mostrato = top["Offerta"]
-            tavolo_mostrato = top["Tavolo"]
+        sub = df[df["Carta"] == nome_carta]
+        if not sub.empty:
+            top = sub.sort_values(by="Offerta", ascending=False).iloc[0]
+            prezzo, tavolo = top["Offerta"], top["Tavolo"]
 
         if nome_carta in st.session_state.offerte_locali:
-            local = st.session_state.offerte_locali[nome_carta]
-            if local["Offerta"] > prezzo_mostrato:
-                prezzo_mostrato = local["Offerta"]
-                tavolo_mostrato = local["Tavolo"]
+            loc = st.session_state.offerte_locali[nome_carta]
+            if loc["Offerta"] > prezzo:
+                prezzo, tavolo = loc["Offerta"], loc["Tavolo"]
 
         col_txt, col_btn = st.columns([2, 1])
         with col_txt:
-            st.write(f"💰 Prezzo attuale: **{prezzo_mostrato} €**")
-            st.caption(f"In testa: {tavolo_mostrato}")
+            st.write(f"💰 Prezzo attuale: **{prezzo} €**")
+            st.caption(f"In testa: {tavolo}")
 
         with col_btn:
-            chiave = f"{nome_carta}_{index_carta}"
-            if current_asta_bloccata:
-                st.button("🔒 Chiusa", disabled=True, use_container_width=True, key=f"lock_{chiave}")
+            chiave = f"{nome_carta}_{index}"
+            if not asta_aperta:
+                st.button("🔒 Chiusa", disabled=True, use_container_width=True)
             else:
                 with st.expander("🚀 Punta"):
-                    nuova = st.number_input(
-                        "Importo (€)",
-                        min_value=int(prezzo_mostrato) + 1,
-                        step=1,
-                        key=f"in_{chiave}"
-                    )
+                    nuova = st.number_input("Importo (€)", min_value=int(prezzo)+1, step=1, key=chiave)
                     if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
                         append_offerta_locale({
                             "Tavolo": st.session_state.tavolo,
                             "Carta": nome_carta,
                             "Offerta": nuova,
-                            "Nome Utente": st.session_state.username
+                            "Utente": st.session_state.username
                         })
                         st.session_state.offerte_locali[nome_carta] = {
                             "Offerta": nuova,
