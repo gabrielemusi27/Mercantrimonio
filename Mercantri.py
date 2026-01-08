@@ -13,7 +13,7 @@ from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
-st_autorefresh(interval=5000, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=13000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -198,7 +198,7 @@ else:
     # -----------------------------------------------------
     # CARTE (FRAGMENT – NO SCROLL JUMP)
     # -----------------------------------------------------
-    @st.fragment(run_every=5)
+    @st.fragment(run_every=13)
     def render_carte():
         df_db = get_offerte_snapshot()
         
