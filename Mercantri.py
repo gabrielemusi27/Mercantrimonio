@@ -4,16 +4,14 @@ import streamlit as st
 import time
 import os
 from google.oauth2.service_account import Credentials
-from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
-
 
 # =========================================================
 # CONFIGURAZIONE
 # =========================================================
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
+STATUS_FILE = "asta_status.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
-st_autorefresh(interval=13000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -31,6 +29,23 @@ gc = gspread.authorize(creds)
 
 SPREADSHEET_ID = "1g_FXSodJoWocTc8Ni12sBSDYviQ7oAQBDipVsLzfw5w"
 sh = gc.open_by_key(SPREADSHEET_ID)
+
+# =========================================================
+# FUNZIONI STATO ASTA (PERSISTENTE)
+# =========================================================
+
+def get_asta_status():
+    """Legge se l'asta è aperta o chiusa dal file locale"""
+    if not os.path.exists(STATUS_FILE):
+        # Default: Aperta se il file non esiste
+        return True
+    df = pd.read_parquet(STATUS_FILE)
+    return bool(df.loc[0, "aperta"])
+
+def set_asta_status(stato: bool):
+    """Salva lo stato dell'asta su file locale"""
+    df = pd.DataFrame([{"aperta": stato}])
+    df.to_parquet(STATUS_FILE, index=False)
 
 # =========================================================
 # FUNZIONI GOOGLE SHEETS
@@ -58,7 +73,7 @@ def append_row(name, row_dict):
     ws.append_row(list(row_dict.values()))
 
 # =========================================================
-# CARICAMENTO DATI STATICI (UNA VOLTA PER SESSIONE)
+# CARICAMENTO DATI STATICI
 # =========================================================
 if 'df_tavoli' not in st.session_state or 'df_carte' not in st.session_state:
     with st.spinner("Sincronizzazione tavoli e carte..."):
@@ -100,28 +115,30 @@ if not st.session_state.user_logged:
 # APP PRINCIPALE
 # =========================================================
 else:
-    asta_bloccata = st.session_state.get("asta_aperta", True) is False
+    # Leggiamo lo stato dell'asta dal file Parquet (non più session_state)
+    asta_aperta = get_asta_status()
+    asta_bloccata = not asta_aperta
 
     # -----------------------------------------------------
     # PANNELLO ADMIN
     # -----------------------------------------------------
     if st.session_state.username == "Federica Giunta":
         with st.sidebar.expander("🛠 PANNELLO DI CONTROLLO", expanded=True):
-            st.write(f"L'asta è: **{'APERTA 🟢' if not asta_bloccata else 'CHIUSA 🔴'}**")
+            st.write(f"L'asta è: **{'APERTA 🟢' if asta_aperta else 'CHIUSA 🔴'}**")
 
             if st.button("🔄 AGGIORNA OFFERTE PER TUTTI", use_container_width=True, type="primary"):
                 forza_scaricamento_offerte()
                 st.cache_data.clear()
                 st.success("Dati sincronizzati!")
 
-            if not asta_bloccata:
+            if asta_aperta:
                 if st.button("🔴 CHIUDI ASTA PER TUTTI"):
-                    st.session_state.asta_aperta = False
+                    set_asta_status(False)
                     st.cache_data.clear()
                     st.rerun()
             else:
                 if st.button("🟢 AVVIA ASTA PER TUTTI"):
-                    st.session_state.asta_aperta = True
+                    set_asta_status(True)
                     st.cache_data.clear()
                     st.rerun()
 
@@ -140,7 +157,6 @@ else:
     # -----------------------------------------------------
     if st.session_state.get('show_report', False):
         st.header("🏆 Risultati Ufficiali")
-
         with st.spinner("Calcolo assegnazioni definitive..."):
             df_fresche = forza_scaricamento_offerte()
 
@@ -149,9 +165,7 @@ else:
             left_on='Carta',
             right_on='Nome Carta'
         )
-
         df_lavoro = df_lavoro.sort_values(by=['Offerta'], ascending=False)
-
         assegnazioni, c_presse, t_presi = [], set(), set()
 
         for _, r in df_lavoro.iterrows():
@@ -166,15 +180,11 @@ else:
                 t_presi.add(r['Tavolo'])
 
         df_f = pd.DataFrame(assegnazioni)
-
         tutti_i_tavoli = set(df_tavoli["Nome Tavolo"].unique())
         tavoli_esclusi = tutti_i_tavoli - t_presi
 
         if tavoli_esclusi:
-            st.error(
-                f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n"
-                + ", ".join(tavoli_esclusi)
-            )
+            st.error(f"😟 **Tavoli senza premi ({len(tavoli_esclusi)}):**\n" + ", ".join(tavoli_esclusi))
         else:
             st.success("🎉 Tutti i tavoli hanno vinto qualcosa!")
 
@@ -186,7 +196,6 @@ else:
         if st.button("Chiudi Report"):
             st.session_state.show_report = False
             st.rerun()
-
         st.divider()
 
     # -----------------------------------------------------
@@ -196,10 +205,12 @@ else:
     st.sidebar.write(f"📍 Tavolo: {st.session_state.tavolo}")
 
     # -----------------------------------------------------
-    # CARTE (FRAGMENT – NO SCROLL JUMP)
+    # CARTE (FRAGMENT – AGGIORNAMENTO AUTOMATICO OGNI 13 SEC)
     # -----------------------------------------------------
     @st.fragment(run_every=13)
     def render_carte():
+        # Rileggiamo lo stato dentro il fragment per bloccare/sbloccare i tasti al refresh
+        current_asta_bloccata = not get_asta_status()
         df_db = get_offerte_snapshot()
         
         for i, row in df_carte.iterrows():
@@ -207,14 +218,12 @@ else:
             prezzo_mostrato = 0
             tavolo_mostrato = "Nessuno"
         
-            # 1. Controlla il DB (Snapshot Parquet)
             off_db = df_db[df_db["Carta"] == nc]
             if not off_db.empty:
                 m = off_db.sort_values(by="Offerta", ascending=False).iloc[0]
                 prezzo_mostrato = m["Offerta"]
                 tavolo_mostrato = m["Tavolo"]
         
-            # 2. Sovrascrivi con l'offerta locale se superiore (Aggiornamento istantaneo)
             if nc in st.session_state.offerte_locali:
                 local = st.session_state.offerte_locali[nc]
                 if local["Offerta"] > prezzo_mostrato:
@@ -237,8 +246,7 @@ else:
         
                 with col_btn:
                     chiave = f"{nc}_{i}"
-                    
-                    if asta_bloccata:
+                    if current_asta_bloccata:
                         st.button("🔒 Chiusa", disabled=True, use_container_width=True, key=f"btn_lock_{chiave}")
                     else:
                         with st.expander("🚀 Punta"):
@@ -249,32 +257,26 @@ else:
                                 step=1,
                                 key=f"in_{chiave}"
                             )
-                        
                             if st.button("Conferma", key=f"go_{chiave}", use_container_width=True):
-                                # Invio dati a Google Sheets
                                 append_row("Offerte", {
                                     "Tavolo": st.session_state.tavolo,
                                     "Carta": nc,
                                     "Offerta": nuova,
                                     "Nome Utente": st.session_state.username
                                 })
-                        
-                                # Aggiornamento locale istantaneo
                                 st.session_state.offerte_locali[nc] = {
                                     "Offerta": nuova,
                                     "Tavolo": st.session_state.tavolo
                                 }
-                                
                                 st.success("Offerta inviata!")
                                 time.sleep(0.5)
-                                st.rerun() # Forza il fragment a ricaricarsi con i nuovi dati locali
+                                st.rerun()
 
     if asta_bloccata:
         st.error("🚫 L'asta è attualmente chiusa. Attendi il via dell'amministratore!")
     else:
         st.success("✅ Asta in corso! Fai la tua offerta.")
 
-    # Esecuzione del frammento delle carte
     render_carte()
                             
     if st.sidebar.button("Log out"):
