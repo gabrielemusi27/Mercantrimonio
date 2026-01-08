@@ -13,7 +13,7 @@ from streamlit_autorefresh import st_autorefresh # Aggiungere a requirements.txt
 SNAPSHOT_FILE = "offerte_snapshot.parquet"
 
 st.set_page_config(page_title="Mercante in Fiera - Matrimonio", layout="wide")
-st_autorefresh(interval=27000, limit=None, key="mercantrimonio_refresh")
+st_autorefresh(interval=13000, limit=None, key="mercantrimonio_refresh")
 
 # =========================================================
 # AUTH GOOGLE
@@ -241,7 +241,7 @@ else:
                     if asta_bloccata:
                         st.button("🔒 Chiusa", disabled=True, use_container_width=True, key=f"btn_lock_{chiave}")
                     else:
-                        with st.popover("🚀 Punta"):
+                        with st.expander("🚀 Punta"):
                             st.write(f"Offerta per {nc}")
                             nuova = st.number_input(
                                 "Importo (€)",
