@@ -209,7 +209,16 @@ else:
 
         # Tabella Risultati
         if not df_finale.empty:
-            st.table(df_finale.style.format({"Offerta": "{} €"}).hide(axis="index"))
+            # 1. Puliamo il DataFrame: resettiamo l'indice e lo rimuoviamo
+            df_pulito = df_finale.reset_index(drop=True)
+            
+            # 2. Usiamo st.dataframe che è più moderno e gestisce meglio lo stile, 
+            # nascondendo l'indice con hide_index=True
+            st.dataframe(
+                df_pulito.style.format({"Offerta": "{} €"}),
+                use_container_width=True,
+                hide_index=True
+            )
             st.metric("💰 Totale Raccolto", f"{df_finale['Offerta'].sum()} €")
 
         if st.button("Chiudi Report"):
