@@ -221,7 +221,7 @@ else:
         with col_btn:
             chiave = f"{nome_carta}_{index}"
             if not asta_aperta:
-                st.button("🔒 Chiusa", disabled=True, use_container_width=True)
+                st.button("🔒 Chiusa", disabled=True, use_container_width=True, key = chiave)
             else:
                 with st.expander("🚀 Punta"):
                     nuova = st.number_input("Importo (€)", min_value=int(prezzo)+1, step=1, key=chiave)
